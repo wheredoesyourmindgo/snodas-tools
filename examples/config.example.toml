@@ -1,0 +1,66 @@
+# snodas-tools example config
+#
+#   snodas run --config examples/config.example.toml --recent 3
+#
+# Relative paths are resolved from this file's folder. Every setting is optional unless noted.
+
+[data]
+directory = "../snodas_data"   # where downloads and converted grids are stored (YYYY/MM/DD/masked/...)
+masked = true                  # masked = contiguous US (default); false = larger unmasked North America grid
+timezone = "America/Denver"    # what "today" means for --recent / --end
+
+[download]
+workers = 4                    # parallel downloads; please be kind to NSIDC's free service
+
+[convert]
+format = "netcdf"              # "netcdf" or "geotiff"
+products = ["swe", "depth", "melt", "temp"]   # see `snodas products`
+keep_raw = false               # delete the original .dat/.txt files after converting
+keep_full_extent = false       # don't keep the ~2-3 MB per product continental grids, only the clipped regions
+
+# A clipped copy of each grid is saved for every region (`<snodas name>_<name>.nc`).
+# Statistics can read from a region instead of the full grid (see `source` below).
+[[convert.clip]]
+name = "upper_colorado"
+shapes = ["basins/colorado_headwaters.geojson"]   # GeoJSON, shapefile, GeoPackage, or "archive.zip!path/inside.shp"
+buffer_m = 2000                # grow the region by 2 km so cells along the edge are included
+interpolate = false            # fill missing cells (e.g. lakes) by linear interpolation
+upscale = 1                    # resample to N times finer resolution (bilinear); 1 = keep SNODAS' ~1 km cells
+
+[stats]
+output_directory = "../snodas_output"
+units = "imperial"             # "imperial" (inches, acre-feet) or "metric" (millimeters, cubic meters)
+temperature_units = "F"        # "K", "C" or "F"
+export_formats = ["csv", "parquet"]   # CSV is always written; also "parquet" and/or "xlsx"
+# products = ["swe", "depth"]  # default: the [convert] products
+
+# One [[basin]] per area to summarize. Each basin becomes a column in the statistics tables.
+[[basin]]
+name = "colorado_headwaters"   # required; used as the column name
+shapes = ["basins/colorado_headwaters.geojson"]   # required
+source = "upper_colorado"      # read from this clip region (required here because keep_full_extent = false)
+interpolate = true             # fill missing cells inside the basin before computing statistics
+
+  # Optional: statistics per elevation band. Get a DEM with:
+  #   snodas dem examples/basins/colorado_headwaters.geojson -o examples/dem/colorado_headwaters.tif
+  [basin.elevation_bands]
+  dem = "dem/colorado_headwaters.tif"
+  step = 1000                  # band height
+  units = "ft"                 # "ft" or "m" (band edges and column names use these units)
+  # min = 7000                 # lowest band edge (default: from the basin's lowest point)
+  # max = 14000                # highest band edge (default: from the basin's highest point)
+
+# Optional: upload results to S3 or an S3-compatible service (DigitalOcean Spaces, Cloudflare R2, MinIO, ...).
+# Needs `pip install "snodas-tools[s3]"`; credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY.
+# [upload]
+# bucket = "my-bucket"
+# prefix = "snodas"            # stats go to <prefix>/stats/, grids to <prefix>/grids/
+# endpoint_url = "https://nyc3.digitaloceanspaces.com"   # omit for AWS S3
+# region = "nyc3"
+# public = false               # make uploaded files publicly readable
+# stats = true                 # upload the statistics tables
+# rasters = false              # upload converted/clipped grids
+
+# Optional: delete each day's data folder after a successful run (statistics are kept).
+[cleanup]
+after_run = false
