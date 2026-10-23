@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 (2026-10-23)
+
+- `workers` settings for `[convert]` and `[stats]` (and `--workers` on `snodas convert` / `snodas stats`) process
+  files in parallel. Each worker writes only its own files, and statistics are gathered and sorted before any table
+  is written, so results are identical to a serial run.
+
 ## 0.1.1 (2026-10-23)
 
 - `convert` reads each file's scale from its SNODAS `.txt` metadata instead of assuming it. Newer files store

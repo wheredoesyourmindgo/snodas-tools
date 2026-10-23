@@ -107,3 +107,28 @@ def test_cli_info_and_products(tmp_path, capsys):
 def test_cli_reports_errors(capsys):
     assert cli.main(["stats", "2025-01-01"]) == 1
     assert "No basins" in capsys.readouterr().err
+
+
+def test_parallel_statistics_match_serial(tmp_path, square_basin):
+    """Workers only compute; results are sorted before saving, so tables don't depend on finishing order."""
+    from datetime import timedelta
+
+    from snodas_tools.filenames import day_dir
+    from snodas_tools.pipeline import compute_stats
+    from snodas_tools.products import get_product
+    from snodas_tools.stats import Basin, Units
+
+    days = [date(2025, 4, 1) + timedelta(days=i) for i in range(4)]
+    for i, day in enumerate(days):
+        folder = day_dir(tmp_path / "data", day)
+        folder.mkdir(parents=True)
+        save_raster(make_grid(0.1 * (i + 1)), folder / f"us_ssmv11034tS__T0001TTNATS{day:%Y%m%d}05HP001.nc", "netcdf")
+    basins = [Basin("a", [square_basin]), Basin("b", [square_basin], interpolate=False)]
+    args = (days, tmp_path / "data", basins, [get_product("swe")], Units())
+    serial = compute_stats(*args, progress=False, workers=1)
+    parallel = compute_stats(*args, progress=False, workers=3)
+    assert [(r.day, r.basin, r.values) for r in serial] == [(r.day, r.basin, r.values) for r in parallel]
+    units = {"swe": {"avg": "in", "sum": "acre-ft"}}
+    store.save(serial, tmp_path / "s", units)
+    store.save(parallel, tmp_path / "p", units)
+    assert (tmp_path / "s" / "swe_sum.csv").read_text() == (tmp_path / "p" / "swe_sum.csv").read_text()

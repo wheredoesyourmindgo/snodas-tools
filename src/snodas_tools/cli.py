@@ -55,6 +55,7 @@ def _parser() -> argparse.ArgumentParser:
         "--clip", action="append", metavar="NAME=SHAPE", default=[], help="also save a copy clipped to SHAPE, named NAME (repeatable)"
     )
     p.add_argument("--delete-raw", action="store_true", help="delete the .dat/.txt files after converting")
+    p.add_argument("--workers", type=int, help="files to convert at once (default: 1, or the config's convert.workers)")
     p.add_argument("--overwrite", action="store_true", help="convert again even if outputs exist")
 
     p = sub.add_parser("stats", help="compute basin statistics from converted grids", epilog=EPILOG)
@@ -66,6 +67,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--temperature-units", choices=["K", "C", "F"], help="units for snowpack temperature")
     p.add_argument("-o", "--output", type=Path, help="folder for the statistics tables (default: ./snodas_output)")
     p.add_argument("--export", nargs="+", choices=["csv", "parquet", "xlsx"], help="table formats (CSV is always written)")
+    p.add_argument("--workers", type=int, help="statistics to compute at once (default: 1, or the config's stats.workers)")
 
     p = sub.add_parser("run", help="download, convert and summarize using a config file", epilog=EPILOG)
     _add_dates(p)
@@ -166,6 +168,7 @@ def cmd_convert(args) -> int:
         keep_full_extent=cfg.keep_full_extent if args.config else True,
         overwrite=args.overwrite,
         progress=not args.quiet,
+        workers=args.workers or cfg.convert_workers,
     )
     print(f"{len(written)} converted file(s) in {cfg.data_dir}")
     return 0
@@ -186,7 +189,7 @@ def cmd_stats(args) -> int:
     units = Units(args.units or cfg.units.system, args.temperature_units or cfg.units.temperature)
     output = args.output or cfg.output_dir
     formats = tuple(args.export) if args.export else cfg.export_formats
-    results = compute_stats(days, cfg.data_dir, basins, products, units, cfg.masked, not args.quiet)
+    results = compute_stats(days, cfg.data_dir, basins, products, units, cfg.masked, not args.quiet, args.workers or cfg.stats_workers)
     if not results:
         print("No converted grids found for those dates. Run `snodas download` and `snodas convert` first.")
         return 1

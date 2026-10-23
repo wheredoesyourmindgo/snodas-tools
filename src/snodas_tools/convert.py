@@ -6,6 +6,7 @@ SNODAS grids are flat binary files of big-endian 16-bit integers on a 30 arc-sec
 See https://nsidc.org/data/user-resources/help-center/how-do-i-convert-snodas-binary-files-geotiff-or-netcdf
 """
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date
 import logging
@@ -266,6 +267,7 @@ def convert(
     keep_full_extent: bool = True,
     overwrite: bool = False,
     progress: bool = True,
+    workers: int = 1,
 ) -> list[Path]:
     """
     Convert the downloaded `.dat` files for the given days. Returns the paths of all converted files.
@@ -274,6 +276,7 @@ def convert(
     - `regions`: also save clipped copies for these regions.
     - `keep_raw`: keep the original `.dat`/`.txt` files after converting.
     - `keep_full_extent`: keep the full continental grid (only meaningful when regions are given).
+    - `workers`: convert this many files at once, in separate processes (each file is independent).
     """
     wanted_codes = {(p.code, p.vertical_code) for p in products} if products else None
     dat_paths = []
@@ -289,8 +292,18 @@ def convert(
         dat_paths.append(path)
 
     written: list[Path] = []
-    for path in tqdm(dat_paths, desc="Converting", unit="file", disable=None if progress else True):
-        written.extend(convert_file(path, masked, fmt, regions, keep_full_extent, overwrite))
+    bar = tqdm(total=len(dat_paths), desc="Converting", unit="file", disable=None if progress else True)
+    if workers > 1 and len(dat_paths) > 1:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(convert_file, p, masked, fmt, regions, keep_full_extent, overwrite) for p in dat_paths]
+            for future in as_completed(futures):
+                written.extend(future.result())
+                bar.update()
+    else:
+        for path in dat_paths:
+            written.extend(convert_file(path, masked, fmt, regions, keep_full_extent, overwrite))
+            bar.update()
+    bar.close()
 
     if not keep_raw:
         for path in find_files(Path(data_dir), days, masked, "*.dat") + find_files(Path(data_dir), days, masked, "*.txt"):

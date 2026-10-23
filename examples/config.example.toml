@@ -17,6 +17,7 @@ format = "netcdf"              # "netcdf" or "geotiff"
 products = ["swe", "depth", "melt", "temp"]   # see `snodas products`
 keep_raw = false               # delete the original .dat/.txt files after converting
 keep_full_extent = false       # don't keep the ~2-3 MB per product continental grids, only the clipped regions
+workers = 1                    # files to convert at once (separate processes); try your CPU count minus one
 
 # A clipped copy of each grid is saved for every region (`<snodas name>_<name>.nc`).
 # Statistics can read from a region instead of the full grid (see `source` below).
@@ -33,6 +34,7 @@ units = "imperial"             # "imperial" (inches, acre-feet) or "metric" (mil
 temperature_units = "F"        # "K", "C" or "F"
 export_formats = ["csv", "parquet"]   # CSV is always written; also "parquet" and/or "xlsx"
 # products = ["swe", "depth"]  # default: the [convert] products
+workers = 1                    # statistics to compute at once (separate processes)
 
 # One [[basin]] per area to summarize. Each basin becomes a column in the statistics tables.
 [[basin]]
