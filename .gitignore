@@ -12,3 +12,6 @@ snodas_data/
 snodas_output/
 examples/dem/
 *.part
+
+# scratch space for trying things out
+tmp/
