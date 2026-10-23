@@ -8,6 +8,7 @@ See https://nsidc.org/data/user-resources/help-center/how-do-i-convert-snodas-bi
 
 from dataclasses import dataclass, field
 from datetime import date
+import gc
 import logging
 from pathlib import Path
 from typing import Literal
@@ -252,6 +253,10 @@ def convert_file(
         path = region_paths[region.name]
         if overwrite or not path.exists():
             save_raster(clip_dataarray(da, region), path, region.format or fmt)
+    # Free the grids now. Each holds ~100 MB in a few objects, and Python's automatic collection (which counts objects,
+    # not bytes) rarely runs in time, so a long run would otherwise grow by ~100 MB per file until it ran out of memory.
+    del raw, da
+    gc.collect()
     return wanted
 
 

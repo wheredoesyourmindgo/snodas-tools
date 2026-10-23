@@ -4,6 +4,7 @@ Running the whole workflow from a config: download -> convert -> statistics -> (
 
 from dataclasses import dataclass, field
 from datetime import date
+import gc
 import logging
 from pathlib import Path
 import shutil
@@ -57,6 +58,7 @@ def compute_stats(
                     log.info("%s %s: no converted grid for basin '%s'", day, product.key, basin.name)
                     continue
                 results.append(basin_stats(raster, basin, product, day, units))
+        gc.collect()  # free each day's grids promptly (see convert_file)
     return results
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 (2026-10-23)
+
+- Free each grid's memory right after it's converted (and after each day of statistics). Memory used to grow by
+  ~100 MB per converted file, because Python's automatic collection counts objects rather than bytes, so a long run
+  (e.g. a month of history) could run out of memory and be killed. It now peaks around 1 GB regardless of run length.
+  This is also the likely cause of the worker crash behind 0.1.3.
+
 ## 0.1.3 (2026-10-23)
 
 - Removed the `workers` settings added in 0.1.2. A worker process was killed partway through a long run on a 4-core,
