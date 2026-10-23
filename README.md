@@ -331,6 +331,8 @@ for day in days:
 - **Basin cells.** A cell belongs to a basin when its center is inside the basin outline.
 - **Missing cells.** SNODAS has no value over large lakes and a few other cells. By default, missing cells inside a
   basin are filled by linear interpolation from their neighbors (`interpolate = false` on a basin turns this off).
+- **Snow-free cells.** SNODAS leaves melt and sublimation blank wherever there's no snowpack; those cells count as 0.
+  Snowpack temperature is also blank where there's no snow, and its average covers only the snow-covered cells.
 - **Average** is the mean of the basin's cells, converted to inches or millimeters (or °F/°C/K for temperature).
 - **Volume** (`sum`) is that average depth times the basin's area. Areas are measured in a Lambert azimuthal
   equal-area projection centered on each basin, so they're accurate anywhere in the SNODAS domain.

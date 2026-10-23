@@ -74,3 +74,20 @@ def test_units_validation():
         Units("furlongs")
     with pytest.raises(ValueError):
         Units(temperature="R")
+
+
+def test_blank_melt_counts_as_zero(square_basin):
+    # melt is only written where there's snow; here half the basin is snow-free (blank)
+    melt = make_grid(0.01, name="melt")
+    melt.values[:, :60] = np.nan
+    stats = basin_stats(melt, Basin("b", [square_basin]), get_product("melt"), DAY, Units("metric"))
+    # the basin spans columns 20-99, so 40 of its 80 columns are blank: the basin average is half of 10 mm
+    assert stats.values["avg"] == pytest.approx(5.0, abs=0.01)
+    assert stats.values["sum"] == pytest.approx(0.005 * area_m2(load_shapes(square_basin)), rel=1e-3)
+
+
+def test_blank_temperature_is_left_out(square_basin):
+    temp = make_grid(270.0, name="temp")
+    temp.values[:, :60] = np.nan  # snow-free: no snowpack temperature
+    stats = basin_stats(temp, Basin("b", [square_basin], interpolate=False), get_product("temp"), DAY, Units(temperature="K"))
+    assert stats.values["avg"] == pytest.approx(270.0)

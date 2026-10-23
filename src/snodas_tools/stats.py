@@ -191,6 +191,9 @@ class BasinStats:
 def basin_stats(raster: str | Path | xr.DataArray, basin: Basin, product: Product, day: date, units: Units) -> BasinStats:
     """Compute statistics for one basin from one converted SNODAS grid (values in the product's physical units)."""
     da = ensure_spatial(raster) if isinstance(raster, xr.DataArray) else open_raster(raster)
+    if product.blank_means_zero:
+        # e.g. melt is blank where there's no snowpack: count it as no melt (and don't interpolate across it)
+        da = ensure_spatial(da.fillna(0))
     clipped = clip_to_basin(da, basin)
     valid = clipped.notnull()
     count = int(valid.sum())
