@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.1.3 (2026-10-23)
+
+- Removed the `workers` settings added in 0.1.2. A worker process was killed partway through a long run on a 4-core,
+  8 GB server, for a reason that wasn't pinned down, so parallel processing isn't offered until it's understood and
+  tested. Conversion and statistics run one file at a time, as in 0.1.1. (Parallel downloads are unchanged.)
+
 ## 0.1.2 (2026-10-23)
 
-- `workers` settings for `[convert]` and `[stats]` (and `--workers` on `snodas convert` / `snodas stats`) process
-  files in parallel. Each worker writes only its own files, and statistics are gathered and sorted before any table
-  is written, so results are identical to a serial run.
+- `workers` settings for `[convert]` and `[stats]` to process files in parallel. Removed in 0.1.3.
 
 ## 0.1.1 (2026-10-23)
 

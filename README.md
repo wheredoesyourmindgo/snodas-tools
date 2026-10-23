@@ -132,9 +132,6 @@ shapes = ["basins/lower_a.shp", "basins/lower_b.shp"]   # several shapes are mer
 snodas run --config my_basins.toml --recent 3
 ```
 
-Long runs (a whole season, or years of history) go much faster with `workers = 3` (or your CPU count minus one) under
-`[convert]` and `[stats]`; results are identical to a serial run.
-
 `run` doesn't re-download days whose outputs already exist (pass `--overwrite` to force it) but always recomputes their
 statistics, so re-running a date updates its row. It exits non-zero if any download fails, which makes it easy to
 monitor. A daily cron job (`--recent 3` re-checks the last few days, so a day NSIDC publishes late is picked up on the next run):

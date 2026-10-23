@@ -39,9 +39,7 @@ class Config:
     data_dir: Path = Path("snodas_data")
     masked: bool = True
     timezone: str = "UTC"
-    workers: int = 4  # parallel downloads
-    convert_workers: int = 1  # files converted at once (separate processes)
-    stats_workers: int = 1  # statistics computed at once (separate processes)
+    workers: int = 4
     format: str = "netcdf"
     products: list[Product] = field(default_factory=lambda: [PRODUCTS[k] for k in ("swe", "depth", "melt", "temp")])
     keep_raw: bool = True
@@ -122,8 +120,7 @@ def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) ->
     cfg.workers = int(download.get("workers", 4))
 
     convert = raw.get("convert", {})
-    _check_keys("convert", convert, {"format", "products", "keep_raw", "keep_full_extent", "clip", "workers"})
-    cfg.convert_workers = max(1, int(convert.get("workers", 1)))
+    _check_keys("convert", convert, {"format", "products", "keep_raw", "keep_full_extent", "clip"})
     cfg.format = convert.get("format", "netcdf")
     if cfg.format not in EXTENSIONS:
         raise ConfigError(f"[convert] format must be one of: {', '.join(EXTENSIONS)}")
@@ -156,8 +153,7 @@ def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) ->
         raise ConfigError("[convert] keep_full_extent = false needs at least one [[convert.clip]] region")
 
     stats = raw.get("stats", {})
-    _check_keys("stats", stats, {"output_directory", "units", "temperature_units", "export_formats", "products", "workers"})
-    cfg.stats_workers = max(1, int(stats.get("workers", 1)))
+    _check_keys("stats", stats, {"output_directory", "units", "temperature_units", "export_formats", "products"})
     cfg.output_dir = _path(base, stats.get("output_directory", "snodas_output"))
     try:
         cfg.units = Units(stats.get("units", "imperial"), stats.get("temperature_units", "F"))

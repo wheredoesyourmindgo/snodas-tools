@@ -2,7 +2,6 @@
 Running the whole workflow from a config: download -> convert -> statistics -> (upload) -> (cleanup).
 """
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date
 import logging
@@ -47,35 +46,18 @@ def compute_stats(
     units: Units,
     masked: bool = True,
     progress: bool = True,
-    workers: int = 1,
 ) -> list[BasinStats]:
-    """
-    Compute statistics for every basin, product and day that has converted data. `workers` > 1 computes them in
-    separate processes.
-    """
-    tasks = []
-    for day in days:
+    """Compute statistics for every basin, product and day that has converted data."""
+    results = []
+    for day in tqdm(days, desc="Statistics", unit="day", disable=None if progress else True):
         for product in products:
             for basin in basins:
                 raster = find_raster(day, data_dir, masked, product, basin.source)
                 if raster is None:
                     log.info("%s %s: no converted grid for basin '%s'", day, product.key, basin.name)
                     continue
-                tasks.append((raster, basin, product, day, units))
-
-    bar = tqdm(total=len(tasks), desc="Statistics", unit="stat", disable=None if progress else True)
-    results = []
-    if workers > 1 and len(tasks) > 1:
-        with ProcessPoolExecutor(max_workers=workers) as pool:
-            for future in as_completed([pool.submit(basin_stats, *task) for task in tasks]):
-                results.append(future.result())
-                bar.update()
-    else:
-        for task in tasks:
-            results.append(basin_stats(*task))
-            bar.update()
-    bar.close()
-    return sorted(results, key=lambda r: (r.day, r.product, r.basin))
+                results.append(basin_stats(raster, basin, product, day, units))
+    return results
 
 
 def day_is_converted(cfg: Config, day: date) -> bool:
@@ -123,12 +105,9 @@ def run(cfg: Config, days: list[date], progress: bool = True, overwrite: bool = 
         keep_full_extent=cfg.keep_full_extent,
         overwrite=overwrite,
         progress=progress,
-        workers=cfg.convert_workers,
     )
     if cfg.basins:
-        summary.stats = compute_stats(
-            days, cfg.data_dir, cfg.basins, cfg.stat_products, cfg.units, cfg.masked, progress, cfg.stats_workers
-        )
+        summary.stats = compute_stats(days, cfg.data_dir, cfg.basins, cfg.stat_products, cfg.units, cfg.masked, progress)
         if summary.stats:
             units = {p.key: cfg.units.labels(p) for p in cfg.stat_products}
             summary.tables = store.save(summary.stats, cfg.output_dir, units, cfg.export_formats)
