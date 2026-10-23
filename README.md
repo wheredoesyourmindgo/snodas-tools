@@ -192,8 +192,8 @@ Credentials come from the standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
 | `snodas chart` | Chart a statistics table in the terminal |
 | `snodas products` | List the SNODAS products |
 
-Every command has `--help`. Commands that read data also take `--config` to use a config file's settings (command-line
-flags win).
+Every command has `--help`, and **[docs/cli.md](docs/cli.md) lists every command and option**. Commands that read data
+also take `--config` to use a config file's settings (command-line flags win).
 
 ## Output
 
@@ -379,7 +379,8 @@ uv venv && uv pip install -e ".[dev]"
 .venv/bin/pytest
 ```
 
-The tests use small synthetic grids and never touch the network.
+The tests use small synthetic grids and never touch the network. After changing any command line option, regenerate
+the command reference with `.venv/bin/python -m snodas_tools.cli_reference` (a test fails until you do).
 
 ## License
 
