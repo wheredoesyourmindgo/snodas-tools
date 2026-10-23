@@ -14,6 +14,7 @@ from snodas_tools.convert import (
     open_raster,
     output_path,
     read_dat,
+    read_scale,
     save_raster,
     to_dataarray,
 )
@@ -84,3 +85,36 @@ def test_convert_file_full_and_clipped(tmp_path, square_basin):
     mtime = written[0].stat().st_mtime_ns
     convert_file(dat, regions=[region], keep_full_extent=False)
     assert written[0].stat().st_mtime_ns == mtime
+
+
+def _metadata(path, units):
+    path.write_text(f"Data units: {units}\nData slope: 1.00000000000000\nData intercept: 0.00000000000000\n")
+
+
+@pytest.mark.parametrize(
+    "units, expected",
+    [("Meters / 1000.000000", 1000), ("Kelvins", 1), ("Kelvins / 10.000000", 10), ("Kilograms per square meter / 10.000000", 10000)],
+)
+def test_read_scale_from_metadata(tmp_path, units, expected):
+    dat = tmp_path / f"{SWE_NAME}.dat"
+    _metadata(dat.with_suffix(".txt"), units)
+    assert read_scale(dat, get_product("swe")) == pytest.approx(expected)
+
+
+def test_read_scale_defaults_and_errors(tmp_path):
+    dat = tmp_path / f"{SWE_NAME}.dat"
+    assert read_scale(dat, get_product("swe")) == 1000  # no metadata file: documented scale
+    _metadata(dat.with_suffix(".txt"), "Furlongs / 3")
+    with pytest.raises(ValueError, match="unrecognized"):
+        read_scale(dat, get_product("swe"))
+
+
+def test_temperature_in_tenths_of_a_kelvin(tmp_path):
+    # newer SNODAS files store snowpack temperature in tenths of a kelvin ("Data units: Kelvins / 10")
+    folder = day_dir(tmp_path, DAY)
+    folder.mkdir(parents=True)
+    dat = folder / "us_ssmv11038wS__A0024TTNATS2025040105DP001.dat"
+    np.full(MASKED_SHAPE, 2731, dtype=">i2").tofile(dat)
+    _metadata(dat.with_suffix(".txt"), "Kelvins / 10.000000")
+    (path,) = convert_file(dat)
+    assert float(open_raster(path).mean()) == pytest.approx(273.1, abs=0.01)

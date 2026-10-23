@@ -345,7 +345,7 @@ for day in days:
 |---|---|---|---|
 | `swe` | 1034 | m × 1000 | Snow water equivalent |
 | `depth` | 1036 | m × 1000 | Snow depth (snapshot) |
-| `temp` | 1038 | K × 1 | Snowpack average temperature |
+| `temp` | 1038 | K × 1 (newer files: K × 10) | Snowpack average temperature |
 | `sublimation_blowing` | 1039 | m × 100000 | Blowing snow sublimation, 24-hour total |
 | `melt` | 1044 | m × 100000 | Melt runoff at the base of the snowpack, 24-hour total |
 | `sublimation` | 1050 | m × 100000 | Snowpack sublimation, 24-hour total |
@@ -356,6 +356,8 @@ for day in days:
   covers a larger North American area from 2009-12-09.
 - Snapshot products (SWE, depth, temperature) are the model state at 06:00 UTC on that date; the others are 24-hour totals.
 - NSIDC moved the grid slightly on 2013-10-01; this is handled automatically.
+- Each day's `.txt` metadata says how its values are scaled, and `convert` reads it, so encoding changes (such as
+  snowpack temperature switching from kelvins to tenths of a kelvin in recent files) are handled automatically.
 - Some days were never published. `snodas download` reports them as "not published" and carries on. Known gaps in the
   masked archive include 2007-02-14, 2007-03-26, 2008-03-13, 2008-06-13, 2008-06-18, 2009-08-20 and 2012-12-20,
   and individual products are missing on a handful of other days in 2003-2006.

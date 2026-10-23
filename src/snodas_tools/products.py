@@ -16,7 +16,7 @@ class Product:
     code: int
     label: str
     units: str  # units after dividing the raw value by `scale`
-    scale: float
+    scale: float  # documented scale; conversion reads the actual scale from each file's metadata (convert.read_scale)
     kind: str  # "depth" (a water/snow depth that can be turned into a volume) or "temperature"
     vertical_code: str | None = None  # distinguishes products that share a code (liquid vs. solid precipitation)
     # SNODAS leaves these blank (no data) wherever there is no snowpack, rather than writing 0. For volumes and

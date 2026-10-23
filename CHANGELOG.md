@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 (2026-10-23)
+
+- `convert` reads each file's scale from its SNODAS `.txt` metadata instead of assuming it. Newer files store
+  snowpack temperature in tenths of a kelvin, which 0.1.0 read as kelvins (ten times too high).
+
 ## 0.1.0 (2026-10-23)
 
 First release.

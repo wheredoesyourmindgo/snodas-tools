@@ -65,6 +65,36 @@ class ClipRegion:
     extra: dict = field(default_factory=dict)
 
 
+# SNODAS metadata units -> how many of the product's units (m, K) one metadata unit is
+METADATA_UNITS = {"meters": 1.0, "kelvins": 1.0, "kilograms per square meter": 0.001}  # 1 kg/m^2 of water = 1 mm
+
+
+def read_scale(dat_path: Path, product: Product | None) -> float:
+    """
+    The divisor that turns a .dat file's raw integers into the product's units, read from the .txt metadata file
+    SNODAS ships next to it (e.g. "Data units: Kelvins / 10.000000"). NOAA has changed these over time (snowpack
+    temperature went from kelvins to tenths of a kelvin), so they're read per file rather than assumed. Falls back to
+    the product's documented scale if there's no metadata file.
+    """
+    default = product.scale if product else 1.0
+    txt = dat_path.with_suffix(".txt")
+    if not txt.exists():
+        log.warning("%s: no metadata file, assuming a scale of 1/%g", dat_path.name, default)
+        return default
+    fields = {}
+    for line in txt.read_text(errors="replace").splitlines():
+        key, sep, value = line.partition(":")
+        if sep:
+            fields[key.strip().lower()] = value.strip()
+    if float(fields.get("data slope", 1)) != 1 or float(fields.get("data intercept", 0)) != 0:
+        raise ValueError(f"{txt.name}: unsupported data slope/intercept {fields.get('data slope')}/{fields.get('data intercept')}")
+    unit, _, divisor = fields.get("data units", "").partition("/")
+    unit = unit.strip().lower()
+    if unit not in METADATA_UNITS:
+        raise ValueError(f"{txt.name}: unrecognized data units '{fields.get('data units')}'")
+    return float(divisor or 1) / METADATA_UNITS[unit]
+
+
 def read_dat(path: Path, masked: bool) -> np.ndarray:
     """Read a raw SNODAS .dat grid as int16."""
     rows, cols = MASKED_SHAPE if masked else UNMASKED_SHAPE
@@ -77,16 +107,20 @@ def read_dat(path: Path, masked: bool) -> np.ndarray:
     return data.reshape(rows, cols).astype(np.int16)
 
 
-def to_dataarray(raw: np.ndarray, day: date, masked: bool, product: Product | None, name: str) -> xr.DataArray:
+def to_dataarray(
+    raw: np.ndarray, day: date, masked: bool, product: Product | None, name: str, scale: float | None = None
+) -> xr.DataArray:
     """
     Wrap a raw SNODAS grid as a georeferenced DataArray in the product's physical units (NaN where there's no data).
+    `scale` is the divisor for the raw values (see `read_scale`); it defaults to the product's documented scale.
     """
     west, south, east, north = grid_bounds(day, masked)
     rows, cols = raw.shape
     # coordinates are pixel centers
     lon = west + (np.arange(cols) + 0.5) * RESOLUTION
     lat = north - (np.arange(rows) + 0.5) * RESOLUTION
-    scale = product.scale if product else 1.0
+    if scale is None:
+        scale = product.scale if product else 1.0
     values = np.where(raw == NODATA, np.nan, raw.astype(np.float32) / np.float32(scale))
     da = xr.DataArray(
         values.astype(np.float32),
@@ -208,7 +242,7 @@ def convert_file(
         return wanted
 
     raw = read_dat(dat_path, masked)
-    da = to_dataarray(raw, date_from_path(dat_path), masked, product, name)
+    da = to_dataarray(raw, date_from_path(dat_path), masked, product, name, read_scale(dat_path, product))
     da.attrs.update({"snodas_file": info.stem, "date": info.date.isoformat(), "time_utc": f"{info.timestamp_utc:%H:%M}"})
 
     if keep_full_extent or not regions:
