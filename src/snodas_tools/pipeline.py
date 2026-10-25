@@ -2,6 +2,7 @@
 Running the whole workflow from a config: download -> convert -> statistics -> (upload) -> (cleanup).
 """
 
+from concurrent.futures import as_completed
 from dataclasses import dataclass, field
 from datetime import date
 import gc
@@ -13,7 +14,7 @@ from tqdm import tqdm
 
 from . import store
 from .config import Config
-from .convert import EXTENSIONS, convert
+from .convert import EXTENSIONS, convert, process_pool
 from .download import DownloadResult, download
 from .filenames import day_dir, parse_snodas_filename
 from .products import Product
@@ -39,6 +40,13 @@ def find_raster(day: date, data_dir: Path, masked: bool, product: Product, sourc
     return None
 
 
+def _stats_task(raster: Path, basin: Basin, product: Product, day: date, units: Units) -> BasinStats:
+    """One statistic, then free its grids promptly (see convert_file)."""
+    result = basin_stats(raster, basin, product, day, units)
+    gc.collect()
+    return result
+
+
 def compute_stats(
     days: list[date],
     data_dir: Path,
@@ -47,19 +55,35 @@ def compute_stats(
     units: Units,
     masked: bool = True,
     progress: bool = True,
+    workers: int = 1,
 ) -> list[BasinStats]:
-    """Compute statistics for every basin, product and day that has converted data."""
-    results = []
-    for day in tqdm(days, desc="Statistics", unit="day", disable=None if progress else True):
+    """
+    Compute statistics for every basin, product and day that has converted data. `workers` > 1 computes them in
+    separate processes.
+    """
+    tasks = []
+    for day in days:
         for product in products:
             for basin in basins:
                 raster = find_raster(day, data_dir, masked, product, basin.source)
                 if raster is None:
                     log.info("%s %s: no converted grid for basin '%s'", day, product.key, basin.name)
                     continue
-                results.append(basin_stats(raster, basin, product, day, units))
-        gc.collect()  # free each day's grids promptly (see convert_file)
-    return results
+                tasks.append((raster, basin, product, day, units))
+
+    bar = tqdm(total=len(tasks), desc="Statistics", unit="stat", disable=None if progress else True)
+    results = []
+    if workers > 1 and len(tasks) > 1:
+        with process_pool(workers) as pool:
+            for future in as_completed([pool.submit(_stats_task, *task) for task in tasks]):
+                results.append(future.result())
+                bar.update()
+    else:
+        for task in tasks:
+            results.append(_stats_task(*task))
+            bar.update()
+    bar.close()
+    return sorted(results, key=lambda r: (r.day, r.product, r.basin))
 
 
 def day_is_converted(cfg: Config, day: date) -> bool:
@@ -107,9 +131,12 @@ def run(cfg: Config, days: list[date], progress: bool = True, overwrite: bool = 
         keep_full_extent=cfg.keep_full_extent,
         overwrite=overwrite,
         progress=progress,
+        workers=cfg.convert_workers,
     )
     if cfg.basins:
-        summary.stats = compute_stats(days, cfg.data_dir, cfg.basins, cfg.stat_products, cfg.units, cfg.masked, progress)
+        summary.stats = compute_stats(
+            days, cfg.data_dir, cfg.basins, cfg.stat_products, cfg.units, cfg.masked, progress, cfg.stats_workers
+        )
         if summary.stats:
             units = {p.key: cfg.units.labels(p) for p in cfg.stat_products}
             summary.tables = store.save(summary.stats, cfg.output_dir, units, cfg.export_formats)

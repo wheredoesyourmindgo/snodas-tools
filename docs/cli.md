@@ -62,6 +62,7 @@ Convert downloaded .dat files to NetCDF or GeoTIFF.
 | `--products PRODUCT [PRODUCT ...]` | only these products, e.g. swe depth (see `snodas products`) |
 | `--clip NAME=SHAPE` | also save a copy clipped to SHAPE, named NAME (repeatable) |
 | `--delete-raw` | delete the .dat/.txt files after converting |
+| `--workers WORKERS` | files to convert at once (default: 1, or the config's convert.workers) |
 | `--overwrite` | convert again even if outputs exist |
 
 ## snodas stats
@@ -84,6 +85,7 @@ Compute basin statistics from converted grids.
 | `--temperature-units {K,C,F}` | units for snowpack temperature |
 | `-o, --output OUTPUT` | folder for the statistics tables (default: ./snodas_output) |
 | `--export {csv,parquet,xlsx} [{csv,parquet,xlsx} ...]` | table formats (CSV is always written) |
+| `--workers WORKERS` | statistics to compute at once (default: 1, or the config's stats.workers) |
 
 ## snodas run
 

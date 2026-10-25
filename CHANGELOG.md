@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 (2026-10-24)
+
+- Parallel processing is back, tested this time: `workers` under `[convert]` and `[stats]` (and `--workers` on
+  `snodas convert` / `snodas stats`), default 1. Workers start as fresh processes ("spawn") rather than copies, which
+  the netCDF/HDF5 libraries handle reliably, and each task frees its grids (0.1.4), so a worker stays around 1 GB.
+  Workers aren't recycled: on Python 3.11, `max_tasks_per_child` can leave the pool waiting forever.
+- Tested on a 4-core, 8 GB server, February 2023 (224 grids, 448 statistics): 3 workers took 119 s vs. 323 s serially,
+  peaked at 2.6 GB in total, and produced identical grids and byte-identical tables.
+
 ## 0.1.4 (2026-10-23)
 
 - Free each grid's memory right after it's converted (and after each day of statistics). Memory used to grow by
