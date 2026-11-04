@@ -1,14 +1,13 @@
 import numpy as np
 import pytest
 import rioxarray  # noqa: F401
+from conftest import DAY, make_grid, write_shape
 from shapely.geometry import box
 
 from snodas_tools.convert import RESOLUTION
 from snodas_tools.geometry import area_m2, buffer, load_shapes
 from snodas_tools.products import get_product
 from snodas_tools.stats import M3_PER_ACRE_FT, M_PER_IN, Basin, ElevationBands, Units, basin_stats
-
-from conftest import DAY, make_grid, write_shape
 
 
 def test_equal_area_matches_a_known_area(tmp_path):
@@ -89,5 +88,7 @@ def test_blank_melt_counts_as_zero(square_basin):
 def test_blank_temperature_is_left_out(square_basin):
     temp = make_grid(270.0, name="temp")
     temp.values[:, :60] = np.nan  # snow-free: no snowpack temperature
-    stats = basin_stats(temp, Basin("b", [square_basin], interpolate=False), get_product("temp"), DAY, Units(temperature="K"))
+    stats = basin_stats(
+        temp, Basin("b", [square_basin], interpolate=False), get_product("temp"), DAY, Units(temperature="K")
+    )
     assert stats.values["avg"] == pytest.approx(270.0)

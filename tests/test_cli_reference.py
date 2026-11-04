@@ -10,5 +10,13 @@ def test_command_reference_is_up_to_date():
 
 def test_command_reference_covers_every_option():
     text = cli_reference()
-    for option in ["--resolution", "--margin", "--temperature-units", "--quiet", "--verbose", "--version", "--delete-raw"]:
+    for option in [
+        "--resolution",
+        "--margin",
+        "--temperature-units",
+        "--quiet",
+        "--verbose",
+        "--version",
+        "--delete-raw",
+    ]:
         assert f"{option}" in text

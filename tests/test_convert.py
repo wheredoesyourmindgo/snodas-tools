@@ -2,6 +2,7 @@ from datetime import date
 
 import numpy as np
 import pytest
+from conftest import DAY, SWE_NAME
 
 from snodas_tools.convert import (
     MASKED_SHAPE,
@@ -20,8 +21,6 @@ from snodas_tools.convert import (
 )
 from snodas_tools.filenames import day_dir
 from snodas_tools.products import get_product
-
-from conftest import DAY, SWE_NAME
 
 
 @pytest.mark.parametrize("masked, shape", [(True, MASKED_SHAPE), (False, UNMASKED_SHAPE)])
@@ -93,7 +92,12 @@ def _metadata(path, units):
 
 @pytest.mark.parametrize(
     "units, expected",
-    [("Meters / 1000.000000", 1000), ("Kelvins", 1), ("Kelvins / 10.000000", 10), ("Kilograms per square meter / 10.000000", 10000)],
+    [
+        ("Meters / 1000.000000", 1000),
+        ("Kelvins", 1),
+        ("Kelvins / 10.000000", 10),
+        ("Kilograms per square meter / 10.000000", 10000),
+    ],
 )
 def test_read_scale_from_metadata(tmp_path, units, expected):
     dat = tmp_path / f"{SWE_NAME}.dat"

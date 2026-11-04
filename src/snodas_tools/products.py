@@ -30,8 +30,12 @@ PRODUCTS: dict[str, Product] = {
         Product("swe", 1034, "Snow water equivalent", "m", 1000, "depth"),
         Product("depth", 1036, "Snow depth", "m", 1000, "depth"),
         Product("temp", 1038, "Snowpack average temperature", "K", 1, "temperature"),
-        Product("sublimation_blowing", 1039, "Blowing snow sublimation (24 hr total)", "m", 100000, "depth", None, True),
-        Product("melt", 1044, "Snow melt runoff at the base of the snowpack (24 hr total)", "m", 100000, "depth", None, True),
+        Product(
+            "sublimation_blowing", 1039, "Blowing snow sublimation (24 hr total)", "m", 100000, "depth", None, True
+        ),
+        Product(
+            "melt", 1044, "Snow melt runoff at the base of the snowpack (24 hr total)", "m", 100000, "depth", None, True
+        ),
         Product("sublimation", 1050, "Snowpack sublimation (24 hr total)", "m", 100000, "depth", None, True),
         Product("precip_liquid", 1025, "Liquid precipitation (24 hr total)", "m", 10000, "depth", "lL00"),
         Product("precip_solid", 1025, "Solid precipitation (24 hr total)", "m", 10000, "depth", "lL01"),

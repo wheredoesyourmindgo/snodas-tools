@@ -6,17 +6,17 @@ SNODAS grids are flat binary files of big-endian 16-bit integers on a 30 arc-sec
 See https://nsidc.org/data/user-resources/help-center/how-do-i-convert-snodas-binary-files-geotiff-or-netcdf
 """
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass, field
-from datetime import date
 import gc
 import logging
 import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
-import rioxarray  # noqa: F401  (registers the .rio accessor)
+import rioxarray  # registers the .rio accessor
 import xarray as xr
 from rasterio.enums import Resampling
 from scipy.spatial import QhullError
@@ -90,7 +90,9 @@ def read_scale(dat_path: Path, product: Product | None) -> float:
         if sep:
             fields[key.strip().lower()] = value.strip()
     if float(fields.get("data slope", 1)) != 1 or float(fields.get("data intercept", 0)) != 0:
-        raise ValueError(f"{txt.name}: unsupported data slope/intercept {fields.get('data slope')}/{fields.get('data intercept')}")
+        raise ValueError(
+            f"{txt.name}: unsupported data slope/intercept {fields.get('data slope')}/{fields.get('data intercept')}"
+        )
     unit, _, divisor = fields.get("data units", "").partition("/")
     unit = unit.strip().lower()
     if unit not in METADATA_UNITS:
@@ -127,7 +129,7 @@ def to_dataarray(
     Wrap a raw SNODAS grid as a georeferenced DataArray in the product's physical units (NaN where there's no data).
     `scale` is the divisor for the raw values (see `read_scale`); it defaults to the product's documented scale.
     """
-    west, south, east, north = grid_bounds(day, masked)
+    west, _south, _east, north = grid_bounds(day, masked)
     rows, cols = raw.shape
     # coordinates are pixel centers
     lon = west + (np.arange(cols) + 0.5) * RESOLUTION
@@ -150,7 +152,9 @@ def to_dataarray(
     da = da.rio.set_spatial_dims(x_dim="lon", y_dim="lat").rio.write_crs(WGS84)
     da.rio.write_nodata(np.nan, encoded=False, inplace=True)
     # pack back to int16 on disk: readers that follow CF conventions get physical units automatically
-    da.encoding.update({"dtype": "int16", "scale_factor": 1 / scale, "_FillValue": NODATA, "zlib": True, "complevel": 4})
+    da.encoding.update(
+        {"dtype": "int16", "scale_factor": 1 / scale, "_FillValue": NODATA, "zlib": True, "complevel": 4}
+    )
     return da
 
 
@@ -256,11 +260,12 @@ def convert_file(
 
     raw = read_dat(dat_path, masked)
     da = to_dataarray(raw, date_from_path(dat_path), masked, product, name, read_scale(dat_path, product))
-    da.attrs.update({"snodas_file": info.stem, "date": info.date.isoformat(), "time_utc": f"{info.timestamp_utc:%H:%M}"})
+    da.attrs.update(
+        {"snodas_file": info.stem, "date": info.date.isoformat(), "time_utc": f"{info.timestamp_utc:%H:%M}"}
+    )
 
-    if keep_full_extent or not regions:
-        if overwrite or not full_path.exists():
-            save_raster(da, full_path, fmt)
+    if (keep_full_extent or not regions) and (overwrite or not full_path.exists()):
+        save_raster(da, full_path, fmt)
     for region in regions:
         path = region_paths[region.name]
         if overwrite or not path.exists():
@@ -311,7 +316,9 @@ def convert(
     bar = tqdm(total=len(dat_paths), desc="Converting", unit="file", disable=None if progress else True)
     if workers > 1 and len(dat_paths) > 1:
         with process_pool(workers) as pool:
-            futures = [pool.submit(convert_file, p, masked, fmt, regions, keep_full_extent, overwrite) for p in dat_paths]
+            futures = [
+                pool.submit(convert_file, p, masked, fmt, regions, keep_full_extent, overwrite) for p in dat_paths
+            ]
             for future in as_completed(futures):
                 written.extend(future.result())
                 bar.update()
@@ -322,6 +329,8 @@ def convert(
     bar.close()
 
     if not keep_raw:
-        for path in find_files(Path(data_dir), days, masked, "*.dat") + find_files(Path(data_dir), days, masked, "*.txt"):
+        for path in find_files(Path(data_dir), days, masked, "*.dat") + find_files(
+            Path(data_dir), days, masked, "*.txt"
+        ):
             path.unlink(missing_ok=True)
     return written

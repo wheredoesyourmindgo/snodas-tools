@@ -5,14 +5,14 @@ Each day is a .tar of gzipped files. They are downloaded, unpacked and gunzipped
 (see `filenames.day_dir`), leaving `.dat` (data) and `.txt` (metadata) files.
 """
 
+import gzip
+import logging
+import shutil
+import tarfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date
-import gzip
-import logging
 from pathlib import Path
-import shutil
-import tarfile
 
 import requests
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
@@ -69,8 +69,7 @@ def _fetch(url: str, target: Path, timeout: int) -> None:
     with requests.get(url, stream=True, timeout=timeout) as response:
         response.raise_for_status()
         with open(partial, "wb") as f:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                f.write(chunk)
+            f.writelines(response.iter_content(chunk_size=1024 * 1024))
     partial.replace(target)
 
 
@@ -144,7 +143,13 @@ def download(
     results: list[DownloadResult] = []
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = [pool.submit(download_day, d, Path(data_dir), masked, overwrite) for d in days]
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Downloading", unit="day", disable=None if progress else True):
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Downloading",
+            unit="day",
+            disable=None if progress else True,
+        ):
             result = future.result()
             if result.status == "missing":
                 log.warning("%s: not available from NSIDC (%s)", result.day, result.detail)

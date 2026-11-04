@@ -4,11 +4,11 @@ Loading a snodas-tools TOML config file. See `examples/config.example.toml` for 
 Relative paths in the config are resolved against the config file's folder.
 """
 
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
-import tomllib
 
-from .convert import ClipRegion, EXTENSIONS
+from .convert import EXTENSIONS, ClipRegion
 from .products import PRODUCTS, Product, get_product
 from .stats import Basin, ElevationBands, Units
 from .store import EXPORT_FORMATS
@@ -87,7 +87,7 @@ def _path(base: Path, value: str) -> Path:
 
 def _products(value, where: str) -> list[Product]:
     if not isinstance(value, list) or not value:
-        raise ConfigError(f"{where}: 'products' must be a non-empty list, e.g. [\"swe\", \"depth\"]")
+        raise ConfigError(f'{where}: \'products\' must be a non-empty list, e.g. ["swe", "depth"]')
     try:
         return [get_product(v) for v in value]
     except ValueError as exc:
@@ -156,7 +156,9 @@ def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) ->
         raise ConfigError("[convert] keep_full_extent = false needs at least one [[convert.clip]] region")
 
     stats = raw.get("stats", {})
-    _check_keys("stats", stats, {"output_directory", "units", "temperature_units", "export_formats", "products", "workers"})
+    _check_keys(
+        "stats", stats, {"output_directory", "units", "temperature_units", "export_formats", "products", "workers"}
+    )
     cfg.stats_workers = max(1, int(stats.get("workers", 1)))
     cfg.output_dir = _path(base, stats.get("output_directory", "snodas_output"))
     try:
@@ -180,7 +182,9 @@ def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) ->
             raise ConfigError(f"{where}: 'name' is required")
         source = basin.get("source")
         if source is not None and source not in names:
-            raise ConfigError(f"{where}: source '{source}' is not a [[convert.clip]] name ({', '.join(names) or 'none defined'})")
+            raise ConfigError(
+                f"{where}: source '{source}' is not a [[convert.clip]] name ({', '.join(names) or 'none defined'})"
+            )
         if source is None and not cfg.keep_full_extent:
             raise ConfigError(f"{where}: set 'source' to a clip region, since full-extent grids are not kept")
         bands = None

@@ -4,8 +4,8 @@ The `snodas` command line tool. Run `snodas --help` or `snodas <command> --help`
 
 import argparse
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from . import __version__
 
@@ -25,7 +25,9 @@ def _add_dates(p: argparse.ArgumentParser, required: bool = True) -> None:
 
 def _add_data(p: argparse.ArgumentParser) -> None:
     p.add_argument("-c", "--config", type=Path, help="TOML config file (see examples/config.example.toml)")
-    p.add_argument("-d", "--dir", type=Path, help="data folder (default: ./snodas_data, or the config's data.directory)")
+    p.add_argument(
+        "-d", "--dir", type=Path, help="data folder (default: ./snodas_data, or the config's data.directory)"
+    )
     p.add_argument("--unmasked", action="store_true", help="use the unmasked (larger, North America) grids")
 
 
@@ -50,9 +52,15 @@ def _parser() -> argparse.ArgumentParser:
     _add_dates(p)
     _add_data(p)
     p.add_argument("--format", choices=["netcdf", "geotiff"], help="output format (default: netcdf)")
-    p.add_argument("--products", nargs="+", metavar="PRODUCT", help="only these products, e.g. swe depth (see `snodas products`)")
     p.add_argument(
-        "--clip", action="append", metavar="NAME=SHAPE", default=[], help="also save a copy clipped to SHAPE, named NAME (repeatable)"
+        "--products", nargs="+", metavar="PRODUCT", help="only these products, e.g. swe depth (see `snodas products`)"
+    )
+    p.add_argument(
+        "--clip",
+        action="append",
+        metavar="NAME=SHAPE",
+        default=[],
+        help="also save a copy clipped to SHAPE, named NAME (repeatable)",
     )
     p.add_argument("--delete-raw", action="store_true", help="delete the .dat/.txt files after converting")
     p.add_argument("--workers", type=int, help="files to convert at once (default: 1, or the config's convert.workers)")
@@ -61,13 +69,21 @@ def _parser() -> argparse.ArgumentParser:
     p = sub.add_parser("stats", help="compute basin statistics from converted grids", epilog=EPILOG)
     _add_dates(p)
     _add_data(p)
-    p.add_argument("--basin", action="append", metavar="NAME=SHAPE", default=[], help="a basin to summarize (repeatable)")
-    p.add_argument("--products", nargs="+", metavar="PRODUCT", help="products to summarize (default: swe depth melt temp)")
+    p.add_argument(
+        "--basin", action="append", metavar="NAME=SHAPE", default=[], help="a basin to summarize (repeatable)"
+    )
+    p.add_argument(
+        "--products", nargs="+", metavar="PRODUCT", help="products to summarize (default: swe depth melt temp)"
+    )
     p.add_argument("--units", choices=["imperial", "metric"], help="imperial (in, acre-ft) or metric (mm, m^3)")
     p.add_argument("--temperature-units", choices=["K", "C", "F"], help="units for snowpack temperature")
     p.add_argument("-o", "--output", type=Path, help="folder for the statistics tables (default: ./snodas_output)")
-    p.add_argument("--export", nargs="+", choices=["csv", "parquet", "xlsx"], help="table formats (CSV is always written)")
-    p.add_argument("--workers", type=int, help="statistics to compute at once (default: 1, or the config's stats.workers)")
+    p.add_argument(
+        "--export", nargs="+", choices=["csv", "parquet", "xlsx"], help="table formats (CSV is always written)"
+    )
+    p.add_argument(
+        "--workers", type=int, help="statistics to compute at once (default: 1, or the config's stats.workers)"
+    )
 
     p = sub.add_parser("run", help="download, convert and summarize using a config file", epilog=EPILOG)
     _add_dates(p)
@@ -189,7 +205,9 @@ def cmd_stats(args) -> int:
     units = Units(args.units or cfg.units.system, args.temperature_units or cfg.units.temperature)
     output = args.output or cfg.output_dir
     formats = tuple(args.export) if args.export else cfg.export_formats
-    results = compute_stats(days, cfg.data_dir, basins, products, units, cfg.masked, not args.quiet, args.workers or cfg.stats_workers)
+    results = compute_stats(
+        days, cfg.data_dir, basins, products, units, cfg.masked, not args.quiet, args.workers or cfg.stats_workers
+    )
     if not results:
         print("No converted grids found for those dates. Run `snodas download` and `snodas convert` first.")
         return 1

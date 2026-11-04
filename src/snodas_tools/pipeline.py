@@ -2,13 +2,13 @@
 Running the whole workflow from a config: download -> convert -> statistics -> (upload) -> (cleanup).
 """
 
+import gc
+import logging
+import shutil
 from concurrent.futures import as_completed
 from dataclasses import dataclass, field
 from datetime import date
-import gc
-import logging
 from pathlib import Path
-import shutil
 
 from tqdm import tqdm
 
@@ -118,7 +118,9 @@ def run(cfg: Config, days: list[date], progress: bool = True, overwrite: bool = 
     to_fetch = days if overwrite else [d for d in days if not day_is_converted(cfg, d)]
     done = sorted(set(days) - set(to_fetch))
     summary.downloads = [DownloadResult(d, "exists") for d in done]
-    summary.downloads += download(to_fetch, cfg.data_dir, cfg.masked, overwrite=overwrite, workers=cfg.workers, progress=progress)
+    summary.downloads += download(
+        to_fetch, cfg.data_dir, cfg.masked, overwrite=overwrite, workers=cfg.workers, progress=progress
+    )
     summary.downloads.sort(key=lambda r: r.day)
     summary.converted = convert(
         days,
@@ -145,11 +147,23 @@ def run(cfg: Config, days: list[date], progress: bool = True, overwrite: bool = 
         up = cfg.upload
         if up.stats and summary.tables:
             summary.uploaded += upload_files(
-                summary.tables, cfg.output_dir, up.bucket, f"{up.prefix}/stats", up.public, endpoint_url=up.endpoint_url, region=up.region
+                summary.tables,
+                cfg.output_dir,
+                up.bucket,
+                f"{up.prefix}/stats",
+                up.public,
+                endpoint_url=up.endpoint_url,
+                region=up.region,
             )
         if up.rasters and summary.converted:
             summary.uploaded += upload_files(
-                summary.converted, cfg.data_dir, up.bucket, f"{up.prefix}/grids", up.public, endpoint_url=up.endpoint_url, region=up.region
+                summary.converted,
+                cfg.data_dir,
+                up.bucket,
+                f"{up.prefix}/grids",
+                up.public,
+                endpoint_url=up.endpoint_url,
+                region=up.region,
             )
 
     if cfg.cleanup_after_run:

@@ -1,8 +1,8 @@
-from datetime import date
 import gzip
 import importlib
 import io
 import tarfile
+from datetime import date
 
 import pytest
 import requests
@@ -14,7 +14,10 @@ dl = importlib.import_module("snodas_tools.download")
 
 
 def test_build_url():
-    assert dl.build_url(date(2024, 3, 9)) == "https://noaadata.apps.nsidc.org/NOAA/G02158/masked/2024/03_Mar/SNODAS_20240309.tar"
+    assert (
+        dl.build_url(date(2024, 3, 9))
+        == "https://noaadata.apps.nsidc.org/NOAA/G02158/masked/2024/03_Mar/SNODAS_20240309.tar"
+    )
     assert dl.build_url(date(2024, 3, 9), masked=False).endswith("/unmasked/2024/03_Mar/SNODAS_unmasked_20240309.tar")
     with pytest.raises(ValueError):
         dl.build_url(date(2003, 9, 29))

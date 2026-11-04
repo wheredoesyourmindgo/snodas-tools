@@ -10,11 +10,11 @@ A `units.json` file next to the tables records each table's units. CSV is always
 later runs read back); Parquet and Excel copies are optional.
 """
 
-from collections import defaultdict
 import json
 import logging
-from pathlib import Path
 import re
+from collections import defaultdict
+from pathlib import Path
 
 import pandas as pd
 
@@ -73,7 +73,9 @@ def save(
     """
     unknown = set(formats) - set(EXPORT_FORMATS)
     if unknown:
-        raise ValueError(f"Unknown export format(s): {', '.join(sorted(unknown))}. Choose from {', '.join(EXPORT_FORMATS)}")
+        raise ValueError(
+            f"Unknown export format(s): {', '.join(sorted(unknown))}. Choose from {', '.join(EXPORT_FORMATS)}"
+        )
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 

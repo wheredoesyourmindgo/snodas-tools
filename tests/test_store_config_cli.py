@@ -1,17 +1,16 @@
-from datetime import date
 import json
+from datetime import date
 from pathlib import Path
 
 import numpy as np
 import pytest
+from conftest import make_grid
 
 from snodas_tools import cli, store
 from snodas_tools.config import ConfigError, load_config, parse_config
 from snodas_tools.convert import save_raster
 from snodas_tools.preview import render_chart, render_terminal
 from snodas_tools.stats import BasinStats
-
-from conftest import make_grid
 
 EXAMPLE_CONFIG = Path(__file__).parents[1] / "examples" / "config.example.toml"
 
@@ -34,7 +33,12 @@ def test_store_merges_and_new_values_win(tmp_path):
 
 def test_store_elevation_tables(tmp_path):
     bands = {"sum": {"1000-2000": 1.0, "-500-0": 2.0}, "avg": {"1000-2000": 3.0, "-500-0": 4.0}}
-    written = store.save([_stats(date(2025, 1, 1), "a", 3, bands)], tmp_path, {"swe": {"avg": "in", "sum": "acre-ft"}}, ("csv", "parquet"))
+    written = store.save(
+        [_stats(date(2025, 1, 1), "a", 3, bands)],
+        tmp_path,
+        {"swe": {"avg": "in", "sum": "acre-ft"}},
+        ("csv", "parquet"),
+    )
     assert (tmp_path / "swe_sum_elevation.parquet") in written
     df = store.load(tmp_path, "swe", "sum", elevation=True)
     assert list(df.columns) == ["-500-0", "1000-2000"]

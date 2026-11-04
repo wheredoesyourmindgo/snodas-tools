@@ -42,7 +42,7 @@ excel = ["xlsxwriter>=3.1"]
 plot = ["matplotlib>=3.8"]
 s3 = ["boto3>=1.28"]
 all = ["snodas-tools[parquet,excel,plot,s3]"]
-dev = ["snodas-tools[all]", "pytest>=8"]
+dev = ["snodas-tools[all]", "pytest>=8", "ruff==0.17.3"]
 
 [project.scripts]
 snodas = "snodas_tools.cli:main"
@@ -59,9 +59,6 @@ packages = ["src/snodas_tools"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.black]
-line-length = 120
 
 [tool.ruff]
 line-length = 120

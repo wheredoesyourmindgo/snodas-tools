@@ -4,10 +4,10 @@ Parsing of SNODAS file names and the on-disk folder layout used by snodas-tools.
 Downloaded data is stored as `<data_dir>/YYYY/MM/DD/<masked|unmasked>/<snodas files>`.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
-import re
 
 from .products import Product, product_for_file
 
@@ -81,7 +81,14 @@ def date_from_path(path: Path) -> date:
     parts = Path(path).parts
     for i in range(len(parts) - 2):
         year, month, day = parts[i : i + 3]
-        if len(year) == 4 and year.isdigit() and len(month) == 2 and month.isdigit() and len(day) == 2 and day.isdigit():
+        if (
+            len(year) == 4
+            and year.isdigit()
+            and len(month) == 2
+            and month.isdigit()
+            and len(day) == 2
+            and day.isdigit()
+        ):
             return date(int(year), int(month), int(day))
     return parse_snodas_filename(path).date
 

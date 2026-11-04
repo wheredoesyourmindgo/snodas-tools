@@ -5,8 +5,8 @@ or (with the `plot` extra) a PNG / interactive matplotlib window.
 
 import math
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ def _rgb(t: float) -> tuple[int, int, int]:
     t = min(max(t, 0.0), 1.0) * (len(_STOPS) - 1)
     i = min(int(t), len(_STOPS) - 2)
     rgb = _STOPS[i] + (_STOPS[i + 1] - _STOPS[i]) * (t - i)
-    return tuple(int(round(v)) for v in rgb)
+    return tuple(int(round(v)) for v in rgb)  # noqa: RUF046 - numpy 1.x round() returns a float
 
 
 def _ansi(rgb: tuple[int, int, int], mode: str, background: bool) -> str:
@@ -119,7 +119,12 @@ def render_terminal(da: xr.DataArray, width: int = 80, color: bool | None = None
     lines = []
     if mode == "none":
         for row in norm:
-            lines.append("".join(" " if not np.isfinite(v) else _ASCII_RAMP[min(int(v * len(_ASCII_RAMP)), len(_ASCII_RAMP) - 1)] for v in row))
+            lines.append(
+                "".join(
+                    " " if not np.isfinite(v) else _ASCII_RAMP[min(int(v * len(_ASCII_RAMP)), len(_ASCII_RAMP) - 1)]
+                    for v in row
+                )
+            )
     else:
         reset = "\x1b[0m"
         for top, bottom in zip(norm[0::2], norm[1::2], strict=True):
@@ -149,10 +154,14 @@ def crop_to_shapes(da: xr.DataArray, shapes: list[str | Path], pad_cells: int = 
     """Crop a grid to the bounding box of some shapes (plus a few cells of padding)."""
     west, south, east, north = load_shapes(shapes).total_bounds
     rx, ry = (abs(r) for r in da.rio.resolution())
-    return da.rio.clip_box(west - pad_cells * rx, south - pad_cells * ry, east + pad_cells * rx, north + pad_cells * ry, crs=WGS84)
+    return da.rio.clip_box(
+        west - pad_cells * rx, south - pad_cells * ry, east + pad_cells * rx, north + pad_cells * ry, crs=WGS84
+    )
 
 
-def plot_map(da: xr.DataArray, shapes: list[str | Path] | None = None, png: str | Path | None = None, show: bool = False):
+def plot_map(
+    da: xr.DataArray, shapes: list[str | Path] | None = None, png: str | Path | None = None, show: bool = False
+):
     """Plot a grid with matplotlib, optionally outlining shapes. Saves to `png` and/or opens a window."""
     try:
         import matplotlib  # pylint: disable=import-outside-toplevel
@@ -204,7 +213,10 @@ def render_chart(series: pd.Series, width: int = 72, height: int = 12, title: st
         out.append(f"{label:>{label_w}} │{line}")
     first, last = series.index[0], series.index[-1]
     out.append(f"{'':>{label_w}} └{'─' * width}")
-    first, last = f"{first:%Y-%m-%d}" if hasattr(first, "strftime") else str(first), f"{last:%Y-%m-%d}" if hasattr(last, "strftime") else str(last)
+    first, last = (
+        f"{first:%Y-%m-%d}" if hasattr(first, "strftime") else str(first),
+        f"{last:%Y-%m-%d}" if hasattr(last, "strftime") else str(last),
+    )
     out.append(f"{'':>{label_w}}  {first}{' ' * max(1, width - len(first) - len(last))}{last}")
     if units:
         out.append(f"{'':>{label_w}}  units: {units}")

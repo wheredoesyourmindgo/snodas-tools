@@ -10,13 +10,14 @@ For each basin and day this computes:
 Optionally, the same statistics per elevation band, using a DEM you provide (see `snodas dem`).
 """
 
+import itertools
+import logging
 from dataclasses import dataclass, field
 from datetime import date
-import logging
 from pathlib import Path
 
 import numpy as np
-import rioxarray  # noqa: F401  (registers the .rio accessor)
+import rioxarray  # registers the .rio accessor
 import xarray as xr
 from rasterio.enums import Resampling
 from scipy.spatial import QhullError
@@ -188,7 +189,9 @@ class BasinStats:
     bands: dict[str, dict[str, float]] | None = None  # statistic -> {band label -> value}
 
 
-def basin_stats(raster: str | Path | xr.DataArray, basin: Basin, product: Product, day: date, units: Units) -> BasinStats:
+def basin_stats(
+    raster: str | Path | xr.DataArray, basin: Basin, product: Product, day: date, units: Units
+) -> BasinStats:
     """Compute statistics for one basin from one converted SNODAS grid (values in the product's physical units)."""
     da = ensure_spatial(raster) if isinstance(raster, xr.DataArray) else open_raster(raster)
     if product.blank_means_zero:
@@ -219,7 +222,7 @@ def basin_stats(raster: str | Path | xr.DataArray, basin: Basin, product: Produc
         # edges come from the whole basin (not just today's valid cells) so the band columns are stable over time
         edges = band_edges(dem, basin.elevation_bands)
         per_stat: dict[str, dict[str, float]] = {}
-        for i, (lower, upper) in enumerate(zip(edges[:-1], edges[1:], strict=True)):
+        for i, (lower, upper) in enumerate(itertools.pairwise(edges)):
             # bands include their upper edge; the lowest band also includes its lower edge
             above = dem >= lower if i == 0 else dem > lower
             in_band = above & (dem <= upper) & valid

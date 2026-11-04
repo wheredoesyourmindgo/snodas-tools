@@ -7,12 +7,12 @@ The DEM is used for elevation-band statistics.
 
 import logging
 import math
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import numpy as np
 import requests
-import rioxarray  # noqa: F401  (registers the .rio accessor)
+import rioxarray  # registers the .rio accessor
 from rioxarray.merge import merge_arrays
 from tenacity import retry, stop_after_attempt, wait_exponential
 

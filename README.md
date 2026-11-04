@@ -382,10 +382,12 @@ git clone https://github.com/wheredoesyourmindgo/snodas-tools
 cd snodas-tools
 uv venv && uv pip install -e ".[dev]"
 .venv/bin/pytest
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
 The tests use small synthetic grids and never touch the network. After changing any command line option, regenerate
-the command reference with `.venv/bin/python -m snodas_tools.cli_reference` (a test fails until you do).
+the command reference with `.venv/bin/python -m snodas_tools.cli_reference` (a test fails until you do). CI also runs the two ruff checks; `.venv/bin/ruff format .` and
+`.venv/bin/ruff check --fix .` fix most of what they report.
 
 ## License
 

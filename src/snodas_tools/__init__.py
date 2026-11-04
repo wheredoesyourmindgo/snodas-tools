@@ -19,10 +19,10 @@ from .products import PRODUCTS, get_product
 from .stats import Basin, ElevationBands, Units, basin_stats
 
 __all__ = [
+    "PRODUCTS",
     "Basin",
     "ClipRegion",
     "ElevationBands",
-    "PRODUCTS",
     "Units",
     "__version__",
     "basin_stats",
