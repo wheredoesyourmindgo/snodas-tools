@@ -52,6 +52,8 @@ class Config:
     export_formats: tuple[str, ...] = ("csv",)
     stats_products: list[Product] | None = None  # default: the converted products
     basins: list[Basin] = field(default_factory=list)
+    peak_products: list[Product] = field(default_factory=lambda: [PRODUCTS["swe"]])  # annual peak tables
+    melt_out_percent: float = 1.0  # melt-out = first day after the peak below this percent of it
     upload: UploadConfig | None = None
     cleanup_after_run: bool = False
 
@@ -108,7 +110,7 @@ def load_config(path: str | Path) -> Config:
 
 def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) -> Config:
     """Build a Config from an already-parsed TOML table."""
-    _check_keys("top level", raw, {"data", "download", "convert", "stats", "basin", "upload", "cleanup"})
+    _check_keys("top level", raw, {"data", "download", "convert", "stats", "peaks", "basin", "upload", "cleanup"})
     cfg = Config(path=path)
 
     data = raw.get("data", {})
@@ -174,6 +176,19 @@ def parse_config(raw: dict, base: Path = Path("."), path: Path | None = None) ->
         missing = {p.key for p in cfg.stats_products} - {p.key for p in cfg.products}
         if missing:
             raise ConfigError(f"[stats] products {sorted(missing)} are not in [convert] products")
+
+    peaks = raw.get("peaks", {})
+    _check_keys("peaks", peaks, {"products", "melt_out_percent"})
+    if "products" in peaks:
+        cfg.peak_products = [] if peaks["products"] == [] else _products(peaks["products"], "[peaks]")
+        not_stats = {p.key for p in cfg.peak_products} - {p.key for p in cfg.stat_products}
+        if not_stats:
+            raise ConfigError(f"[peaks] products {sorted(not_stats)} are not in [stats] products")
+        if any(p.kind == "temperature" for p in cfg.peak_products):
+            raise ConfigError("[peaks] products can't include temperature")
+    cfg.melt_out_percent = float(peaks.get("melt_out_percent", 1.0))
+    if not 0 < cfg.melt_out_percent < 100:
+        raise ConfigError("[peaks] melt_out_percent must be between 0 and 100")
 
     for i, basin in enumerate(raw.get("basin", [])):
         where = f"[[basin]] #{i + 1}"

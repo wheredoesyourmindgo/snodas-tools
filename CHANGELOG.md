@@ -6,6 +6,9 @@
   to four) over the median and range of the other years and reports its percent of median, rank and peak so far;
   `heatmap` draws one row per water year; `months` draws box plots of monthly averages. Days line up by calendar date
   across leap and non-leap years.
+- `snodas peaks` writes `swe_peaks.csv`: each basin's peak date, peak average and volume, and melt-out date for every
+  water year, with a status (`final`, `in progress`, `incomplete`). `snodas run` rebuilds it after saving statistics;
+  a new `[peaks]` config section picks the products and the melt-out threshold (default 1% of the peak).
 - `snodas chart` can save any view as a PNG (`--png`) or open it in a window (`--show`), and takes `--no-color`.
 
 ## 0.1.5 (2026-10-24)

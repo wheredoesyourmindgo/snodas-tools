@@ -17,6 +17,7 @@ from .config import Config
 from .convert import EXTENSIONS, convert, process_pool
 from .download import DownloadResult, download
 from .filenames import day_dir, parse_snodas_filename
+from .peaks import save_peaks
 from .products import Product
 from .stats import Basin, BasinStats, Units, basin_stats
 from .upload import upload_files
@@ -142,6 +143,11 @@ def run(cfg: Config, days: list[date], progress: bool = True, overwrite: bool = 
         if summary.stats:
             units = {p.key: cfg.units.labels(p) for p in cfg.stat_products}
             summary.tables = store.save(summary.stats, cfg.output_dir, units, cfg.export_formats)
+            # annual peaks are rebuilt from the full tables, so they reflect every day saved so far
+            stat_keys = {p.key for p in cfg.stat_products}
+            for product in (p for p in cfg.peak_products if p.key in stat_keys):
+                _, written = save_peaks(cfg.output_dir, product.key, cfg.export_formats, cfg.melt_out_percent)
+                summary.tables += written
 
     if cfg.upload:
         up = cfg.upload
