@@ -13,7 +13,7 @@ Run `snodas COMMAND --help` for the same information in a terminal.
 | [`snodas dem`](#snodas-dem) | download a DEM (USGS 3DEP) for elevation bands |
 | [`snodas info`](#snodas-info) | summarize a converted grid |
 | [`snodas preview`](#snodas-preview) | draw a converted grid in the terminal, as a PNG, or in a window |
-| [`snodas chart`](#snodas-chart) | chart a statistics table in the terminal |
+| [`snodas chart`](#snodas-chart) | chart a statistics table in the terminal, as a PNG, or in a window |
 | [`snodas products`](#snodas-products) | list the SNODAS products snodas-tools knows about |
 
 ## Options for every command
@@ -135,16 +135,21 @@ Draw a converted grid in the terminal, as a PNG, or in a window.
 
 ## snodas chart
 
-Chart a statistics table in the terminal.
+Chart a statistics table in the terminal, as a PNG, or in a window.
 
 | Argument or option | Description |
 |---|---|
 | `table` | a table written by `snodas stats`, e.g. snodas_output/swe_sum.csv |
 | `--basin BASIN` | column to chart (default: the first basin) |
-| `--start START` | first date to show |
-| `--end END` | last date to show |
+| `--view {series,water-years,heatmap,months}` | series: values over time (default); water-years: each water year (Oct-Sep) over the median and range of the others; heatmap: one row per water year; months: box plots of monthly averages across water years |
+| `--years WY [WY ...]` | water years to highlight in the water-years and months views (default: the latest); WY2026 is 2025-10-01 to 2026-09-30 |
+| `--start START` | first date to use |
+| `--end END` | last date to use |
 | `--width WIDTH` | chart columns (default: terminal width) |
 | `--height HEIGHT` | chart rows (default: 12) |
+| `--no-color` | plain text output |
+| `--png PNG` | save a PNG chart (needs the plot extra) |
+| `--show` | open an interactive matplotlib window (needs the plot extra) |
 
 ## snodas products
 

@@ -12,6 +12,7 @@ from . import __version__
 log = logging.getLogger("snodas_tools")
 
 EPILOG = "Docs and examples: https://github.com/wheredoesyourmindgo/snodas-tools"
+CHART_VIEWS = ("series", "water-years", "heatmap", "months")
 
 
 def _add_dates(p: argparse.ArgumentParser, required: bool = True) -> None:
@@ -107,13 +108,33 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--png", type=Path, help="save a PNG map (needs the plot extra)")
     p.add_argument("--show", action="store_true", help="open an interactive matplotlib window (needs the plot extra)")
 
-    p = sub.add_parser("chart", help="chart a statistics table in the terminal", epilog=EPILOG)
+    p = sub.add_parser(
+        "chart", help="chart a statistics table in the terminal, as a PNG, or in a window", epilog=EPILOG
+    )
     p.add_argument("table", type=Path, help="a table written by `snodas stats`, e.g. snodas_output/swe_sum.csv")
     p.add_argument("--basin", help="column to chart (default: the first basin)")
-    p.add_argument("--start", help="first date to show")
-    p.add_argument("--end", help="last date to show")
+    p.add_argument(
+        "--view",
+        choices=CHART_VIEWS,
+        default="series",
+        help="series: values over time (default); water-years: each water year (Oct-Sep) over the median and range "
+        "of the others; heatmap: one row per water year; months: box plots of monthly averages across water years",
+    )
+    p.add_argument(
+        "--years",
+        nargs="+",
+        type=int,
+        metavar="WY",
+        help="water years to highlight in the water-years and months views (default: the latest); "
+        "WY2026 is 2025-10-01 to 2026-09-30",
+    )
+    p.add_argument("--start", help="first date to use")
+    p.add_argument("--end", help="last date to use")
     p.add_argument("--width", type=int, help="chart columns (default: terminal width)")
     p.add_argument("--height", type=int, default=12, help="chart rows (default: 12)")
+    p.add_argument("--no-color", action="store_true", help="plain text output")
+    p.add_argument("--png", type=Path, help="save a PNG chart (needs the plot extra)")
+    p.add_argument("--show", action="store_true", help="open an interactive matplotlib window (needs the plot extra)")
 
     sub.add_parser("products", help="list the SNODAS products snodas-tools knows about", epilog=EPILOG)
     return parser
@@ -269,9 +290,10 @@ def cmd_chart(args) -> int:
 
     import pandas as pd  # pylint: disable=import-outside-toplevel
 
-    from .preview import render_chart  # pylint: disable=import-outside-toplevel
+    from . import wateryear  # pylint: disable=import-outside-toplevel
+    from .preview import plot_series, render_chart  # pylint: disable=import-outside-toplevel
 
-    df = pd.read_csv(args.table, parse_dates=["date"]).set_index("date")
+    df = pd.read_csv(args.table, parse_dates=["date"]).set_index("date").sort_index()
     if "basin" in df.columns:
         raise ValueError("Elevation tables have one row per basin; chart a basin table like swe_sum.csv instead.")
     column = args.basin or df.columns[0]
@@ -280,8 +302,31 @@ def cmd_chart(args) -> int:
     series = df[column].loc[args.start : args.end]
     units_file = args.table.parent / "units.json"
     units = json.loads(units_file.read_text()).get(args.table.stem, "") if units_file.exists() else ""
+    title = f"{args.table.stem}: {column}"
     width = args.width or _terminal_width() - 12
-    print(render_chart(series, width=width, height=args.height, title=f"{args.table.stem}: {column}", units=units))
+    color = False if args.no_color else None
+    if args.years and args.view in ("series", "heatmap"):
+        raise ValueError("--years is for the water-years and months views.")
+
+    if args.view == "series":
+        if args.png or args.show:
+            plot_series(series.dropna(), title, units, args.png, args.show)
+        else:
+            print(render_chart(series, width=width, height=args.height, title=title, units=units))
+    else:
+        table = wateryear.by_water_year(series)
+        years = args.years or wateryear.default_years(table)
+        wateryear.check_years(table, years)
+        if args.png or args.show:
+            wateryear.plot(table, args.view, years, title, units, args.png, args.show)
+        elif args.view == "water-years":
+            print(wateryear.render_water_years(table, years, width, args.height, title, units, color))
+        elif args.view == "heatmap":
+            print(wateryear.render_heatmap(table, width, title, units, color))
+        else:
+            print(wateryear.render_months(table, years, width, title, units, color))
+    if args.png:
+        print(f"Saved {args.png}")
     return 0
 
 

@@ -194,7 +194,7 @@ Credentials come from the standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
 | `snodas dem` | Download a DEM for a basin from USGS 3DEP |
 | `snodas info` | Summarize a converted grid (size, bounds, units, min/mean/max) |
 | `snodas preview` | Draw a grid in the terminal, save a PNG (`--png`), or open a window (`--show`) |
-| `snodas chart` | Chart a statistics table in the terminal |
+| `snodas chart` | Chart a statistics table over time, or compare water years (`--view water-years`, `heatmap`, `months`) |
 | `snodas products` | List the SNODAS products |
 
 Every command has `--help`, and **[docs/cli.md](docs/cli.md) lists every command and option**. Commands that read data
@@ -273,6 +273,33 @@ swe_sum: colorado_headwaters
            2025-03-25 2025-04-01
            units: acre-ft
 ```
+
+With a few years in the table, `--view` compares water years (Oct 1 to Sep 30, named for the year they end in):
+
+- `water-years`: this year (or `--years 2026 2017`, up to four) over the median and range of the other years, plus a
+  line saying where it stands today: percent of median, rank, and peak so far
+- `heatmap`: one row per water year, colored by value
+- `months`: box plots of each month's average across the years, with the highlighted years marked
+
+```console
+$ snodas chart snodas_output/swe_sum.csv --view water-years --height 8
+swe_sum: upper_river
+1,530,811 │                            ░░░░
+          │                          ░░●●●●░░
+          │                        ░░●●░░░░●░░░
+          │                       ░●●░──────░░░░░
+          │                     ░●●───░░░░░░───░░░░
+          │                   ░●●──░░░░░░░░░░░░────░░
+          │                ●●●●─░░░░░        ░░░░░░────
+        0 │●●●●●●●●●●●●●●●●─░░░                      ░░────────────────
+          └────────────────────────────────────────────────────────────
+           Oct  Nov  Dec  Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep
+           ● WY2026  ─ median  ░ range (20 other years, WY2006-WY2025)
+           units: acre-ft
+WY2026 on 2026-04-15: 1,141,495, 145% of median (789,575), 5th highest of 21 years, peak 1,300,438 on 2026-04-04
+```
+
+Every view can also be saved as a PNG (`--png chart.png`) or opened in a window (`--show`) with the `plot` extra.
 
 ### Other command-line tools
 
