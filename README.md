@@ -27,6 +27,7 @@ optionally broken down **by elevation band**.
 - **Summarizes** each basin: average (inches or mm) and total volume (acre-feet or cubic meters), plus per elevation
   band using a DEM. Works anywhere in the SNODAS domain: areas are computed in an equal-area projection centered on each
   basin.
+- **Finds each year's peak**: the date and size of each water year's peak snowpack, and when it melted out.
 - **Fetches a DEM** for your basin from USGS 3DEP (free, no key) for the elevation bands.
 - **Previews** data right in the terminal (a color map or a chart), as a PNG, or in an interactive window.
 - **Uploads** results to S3 or any S3-compatible store (optional), and is happy running from cron.
@@ -190,6 +191,7 @@ Credentials come from the standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
 | `snodas download` | Download and unpack days from NSIDC (`--workers`, `--overwrite`, `--unmasked`) |
 | `snodas convert` | `.dat` to NetCDF/GeoTIFF (`--format`, `--products`, `--clip NAME=SHAPE`, `--delete-raw`) |
 | `snodas stats` | Basin statistics (`--basin NAME=SHAPE`, `--products`, `--units`, `--export csv parquet xlsx`) |
+| `snodas peaks` | Each water year's peak, peak date and melt-out date per basin (`--melt-out PERCENT`) |
 | `snodas run` | Everything above, from a config file |
 | `snodas dem` | Download a DEM for a basin from USGS 3DEP |
 | `snodas info` | Summarize a converted grid (size, bounds, units, min/mean/max) |
@@ -215,6 +217,30 @@ also take `--config` to use a config file's settings (command-line flags win).
 
 ...and likewise for `depth`, `melt`, `sublimation`, `sublimation_blowing`, `precip_liquid`, `precip_solid`. Parquet and
 Excel copies are written alongside when requested. Temperature has no `sum`.
+
+### Annual peaks
+
+`snodas peaks` (and `snodas run`, after saving statistics) rebuilds `swe_peaks.csv` from the daily SWE tables: one row
+per basin and water year (Oct 1 to Sep 30, named for the year it ends in).
+
+| Column | Meaning |
+|---|---|
+| `peak_date` | the day of the season's largest snowpack (by volume) |
+| `peak_avg_in`, `peak_sum_acre_ft` | the average and volume that day (units are part of the name, e.g. `peak_sum_m3`) |
+| `melt_out_date` | the first day after the peak with less than 1% of it left (`--melt-out`, or `melt_out_percent`) |
+| `first_date`, `last_date`, `days` | the daily data the row is based on |
+| `status` | `final`; `in progress` (the latest water year, until Sep 30); or `incomplete` (the data starts on the peak day, so the peak may be earlier, or stops before melt-out) |
+
+```console
+$ snodas peaks
+                         peak_date peak_avg_in peak_sum_acre_ft melt_out_date  days       status
+basin       water_year
+upper_river 2025        2025-04-04       11.91          714,776    2025-07-03   365        final
+            2026        2026-04-04       21.67        1,300,438    2026-07-03   365        final
+            2027        2026-11-20        0.03            1,781                  51  in progress
+```
+
+Peaks for other products (e.g. snow depth) are one `--product depth` away, or set `[peaks] products` in the config.
 
 Converted grids live next to the downloads: `snodas_data/YYYY/MM/DD/masked/<SNODAS name>.nc`, and clipped copies as
 `<SNODAS name>_<region>.nc`.

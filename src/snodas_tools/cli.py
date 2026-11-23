@@ -86,6 +86,23 @@ def _parser() -> argparse.ArgumentParser:
         "--workers", type=int, help="statistics to compute at once (default: 1, or the config's stats.workers)"
     )
 
+    p = sub.add_parser(
+        "peaks", help="annual peak, peak date and melt-out date per basin, from the statistics tables", epilog=EPILOG
+    )
+    p.add_argument("-c", "--config", type=Path, help="TOML config file (for the output folder and settings)")
+    p.add_argument("-o", "--output", type=Path, help="folder with the statistics tables (default: ./snodas_output)")
+    p.add_argument("--product", default="swe", help="product to find peaks for (default: swe)")
+    p.add_argument(
+        "--melt-out",
+        type=float,
+        metavar="PERCENT",
+        help="melt-out is the first day after the peak below this percent of it (default: 1)",
+    )
+    p.add_argument(
+        "--export", nargs="+", choices=["csv", "parquet", "xlsx"], help="table formats (CSV is always written)"
+    )
+    p.add_argument("--basin", help="only print this basin (the saved table has every basin)")
+
     p = sub.add_parser("run", help="download, convert and summarize using a config file", epilog=EPILOG)
     _add_dates(p)
     p.add_argument("-c", "--config", type=Path, required=True, help="TOML config file")
@@ -237,6 +254,28 @@ def cmd_stats(args) -> int:
     return 0
 
 
+def cmd_peaks(args) -> int:
+    from .peaks import format_peaks, save_peaks  # pylint: disable=import-outside-toplevel
+    from .products import get_product  # pylint: disable=import-outside-toplevel
+
+    cfg = _config(args)
+    product = get_product(args.product)
+    if product.kind == "temperature":
+        raise ValueError("Peaks are for snow and water products (e.g. swe, depth), not temperature.")
+    output = args.output or cfg.output_dir
+    formats = tuple(args.export) if args.export else cfg.export_formats
+    melt_out = args.melt_out if args.melt_out is not None else cfg.melt_out_percent
+    df, written = save_peaks(output, product.key, formats, melt_out)
+    if args.basin:
+        if args.basin not in df.index.get_level_values("basin"):
+            raise ValueError(f"No basin '{args.basin}' in the {product.key} tables.")
+        df = df.loc[[args.basin]]
+    print(format_peaks(df))
+    if written:
+        print(f"Saved {', '.join(str(p) for p in written)}")
+    return 0
+
+
 def cmd_run(args) -> int:
     from .pipeline import run  # pylint: disable=import-outside-toplevel
 
@@ -343,6 +382,7 @@ COMMANDS = {
     "download": cmd_download,
     "convert": cmd_convert,
     "stats": cmd_stats,
+    "peaks": cmd_peaks,
     "run": cmd_run,
     "dem": cmd_dem,
     "info": cmd_info,

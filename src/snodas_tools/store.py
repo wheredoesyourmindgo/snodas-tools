@@ -47,7 +47,9 @@ def _write(df: pd.DataFrame, csv_path: Path, formats: tuple[str, ...]) -> list[P
     tmp.replace(csv_path)
     written.append(csv_path)
     flat = df.reset_index()
-    flat["date"] = pd.to_datetime(flat["date"])
+    for column in flat.columns:
+        if column == "date" or str(column).endswith("_date"):
+            flat[column] = pd.to_datetime(flat[column])
     if "parquet" in formats:
         path = csv_path.with_suffix(".parquet")
         flat.to_parquet(path, index=False)
@@ -57,6 +59,12 @@ def _write(df: pd.DataFrame, csv_path: Path, formats: tuple[str, ...]) -> list[P
         flat.to_excel(path, index=False, engine="xlsxwriter")
         written.append(path)
     return written
+
+
+def write_table(df: pd.DataFrame, csv_path: Path, formats: tuple[str, ...] = ("csv",)) -> list[Path]:
+    """Replace a whole table (CSV, plus any other requested formats). Returns the files written."""
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    return _write(df, csv_path, formats)
 
 
 def save(

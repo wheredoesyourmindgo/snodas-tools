@@ -36,6 +36,10 @@ export_formats = ["csv", "parquet"]   # CSV is always written; also "parquet" an
 # products = ["swe", "depth"]  # default: the [convert] products
 workers = 1                    # statistics to compute at once (separate processes, ~1 GB each)
 
+[peaks]
+products = ["swe"]             # write <product>_peaks.csv after each run (default ["swe"]; [] to skip)
+melt_out_percent = 1           # melt-out = first day after the peak with less than this percent of it left
+
 # One [[basin]] per area to summarize. Each basin becomes a column in the statistics tables.
 [[basin]]
 name = "colorado_headwaters"   # required; used as the column name

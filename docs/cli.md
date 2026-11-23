@@ -9,6 +9,7 @@ Run `snodas COMMAND --help` for the same information in a terminal.
 | [`snodas download`](#snodas-download) | download SNODAS data from NSIDC |
 | [`snodas convert`](#snodas-convert) | convert downloaded .dat files to NetCDF or GeoTIFF |
 | [`snodas stats`](#snodas-stats) | compute basin statistics from converted grids |
+| [`snodas peaks`](#snodas-peaks) | annual peak, peak date and melt-out date per basin, from the statistics tables |
 | [`snodas run`](#snodas-run) | download, convert and summarize using a config file |
 | [`snodas dem`](#snodas-dem) | download a DEM (USGS 3DEP) for elevation bands |
 | [`snodas info`](#snodas-info) | summarize a converted grid |
@@ -86,6 +87,19 @@ Compute basin statistics from converted grids.
 | `-o, --output OUTPUT` | folder for the statistics tables (default: ./snodas_output) |
 | `--export {csv,parquet,xlsx} [{csv,parquet,xlsx} ...]` | table formats (CSV is always written) |
 | `--workers WORKERS` | statistics to compute at once (default: 1, or the config's stats.workers) |
+
+## snodas peaks
+
+Annual peak, peak date and melt-out date per basin, from the statistics tables.
+
+| Argument or option | Description |
+|---|---|
+| `-c, --config CONFIG` | TOML config file (for the output folder and settings) |
+| `-o, --output OUTPUT` | folder with the statistics tables (default: ./snodas_output) |
+| `--product PRODUCT` | product to find peaks for (default: swe) |
+| `--melt-out PERCENT` | melt-out is the first day after the peak below this percent of it (default: 1) |
+| `--export {csv,parquet,xlsx} [{csv,parquet,xlsx} ...]` | table formats (CSV is always written) |
+| `--basin BASIN` | only print this basin (the saved table has every basin) |
 
 ## snodas run
 
