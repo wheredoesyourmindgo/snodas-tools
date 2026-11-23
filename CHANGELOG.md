@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `snodas chart --view` compares water years (Oct 1 to Sep 30): `water-years` draws the latest year (or `--years`, up
+  to four) over the median and range of the other years and reports its percent of median, rank and peak so far;
+  `heatmap` draws one row per water year; `months` draws box plots of monthly averages. Days line up by calendar date
+  across leap and non-leap years.
+- `snodas chart` can save any view as a PNG (`--png`) or open it in a window (`--show`), and takes `--no-color`.
+
 ## 0.1.5 (2026-10-24)
 
 - Parallel processing is back, tested this time: `workers` under `[convert]` and `[stats]` (and `--workers` on

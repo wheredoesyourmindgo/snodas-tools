@@ -159,10 +159,8 @@ def crop_to_shapes(da: xr.DataArray, shapes: list[str | Path], pad_cells: int = 
     )
 
 
-def plot_map(
-    da: xr.DataArray, shapes: list[str | Path] | None = None, png: str | Path | None = None, show: bool = False
-):
-    """Plot a grid with matplotlib, optionally outlining shapes. Saves to `png` and/or opens a window."""
+def pyplot(show: bool = False):
+    """matplotlib.pyplot, without a window unless `show`. Raises a friendly error if the plot extra isn't installed."""
     try:
         import matplotlib  # pylint: disable=import-outside-toplevel
 
@@ -171,7 +169,14 @@ def plot_map(
         import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
     except ImportError:
         raise RuntimeError('Plotting needs matplotlib: pip install "snodas-tools[plot]"') from None
+    return plt
 
+
+def plot_map(
+    da: xr.DataArray, shapes: list[str | Path] | None = None, png: str | Path | None = None, show: bool = False
+):
+    """Plot a grid with matplotlib, optionally outlining shapes. Saves to `png` and/or opens a window."""
+    plt = pyplot(show)
     fig, ax = plt.subplots(figsize=(9, 6))
     # robust=True uses the 2nd-98th percentiles for the color scale, so a few extreme cells don't wash out the map
     da.plot(ax=ax, cmap="viridis", robust=True, cbar_kwargs={"label": f"{da.name} ({da.attrs.get('units', '')})"})
@@ -221,6 +226,24 @@ def render_chart(series: pd.Series, width: int = 72, height: int = 12, title: st
     if units:
         out.append(f"{'':>{label_w}}  units: {units}")
     return "\n".join(out)
+
+
+def plot_series(series: pd.Series, title: str = "", units: str = "", png=None, show: bool = False) -> None:
+    """Plot a time series with matplotlib. Saves to `png` and/or opens a window."""
+    plt = pyplot(show)
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    ax.plot(pd.to_datetime(series.index), series.to_numpy(dtype=float), linewidth=1.5)
+    ax.set_title(title)
+    ax.set_ylabel(f"{title} ({units})" if units else title)
+    ax.set_ylim(bottom=min(0, ax.get_ylim()[0]))
+    ax.grid(axis="y", alpha=0.3)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    if png:
+        fig.savefig(png, dpi=150)
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
 def open_any(path: str | Path) -> xr.DataArray:
