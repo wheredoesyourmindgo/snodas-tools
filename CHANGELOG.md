@@ -9,6 +9,10 @@
 - `snodas peaks` writes `swe_peaks.csv`: each basin's peak date, peak average and volume, and melt-out date for every
   water year, with a status (`final`, `in progress`, `incomplete`). `snodas run` rebuilds it after saving statistics;
   a new `[peaks]` config section picks the products and the melt-out threshold (default 1% of the peak).
+- `snodas gaps` lists the days in a range (default: the first local day through today) that are converted, downloaded
+  but not converted, not downloaded, or never published by NSIDC, as compact date ranges. NSIDC is asked through its
+  monthly directory listings, one request per month with missing days (`--offline` skips it). `--download` fetches
+  the missing days NSIDC has.
 - `snodas chart` can save any view as a PNG (`--png`) or open it in a window (`--show`), and takes `--no-color`.
 
 ## 0.1.5 (2026-10-24)

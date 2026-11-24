@@ -9,6 +9,7 @@ Run `snodas COMMAND --help` for the same information in a terminal.
 | [`snodas download`](#snodas-download) | download SNODAS data from NSIDC |
 | [`snodas convert`](#snodas-convert) | convert downloaded .dat files to NetCDF or GeoTIFF |
 | [`snodas stats`](#snodas-stats) | compute basin statistics from converted grids |
+| [`snodas gaps`](#snodas-gaps) | list days missing from the data folder: not downloaded, not converted, or never published |
 | [`snodas peaks`](#snodas-peaks) | annual peak, peak date and melt-out date per basin, from the statistics tables |
 | [`snodas run`](#snodas-run) | download, convert and summarize using a config file |
 | [`snodas dem`](#snodas-dem) | download a DEM (USGS 3DEP) for elevation bands |
@@ -87,6 +88,25 @@ Compute basin statistics from converted grids.
 | `-o, --output OUTPUT` | folder for the statistics tables (default: ./snodas_output) |
 | `--export {csv,parquet,xlsx} [{csv,parquet,xlsx} ...]` | table formats (CSV is always written) |
 | `--workers WORKERS` | statistics to compute at once (default: 1, or the config's stats.workers) |
+
+## snodas gaps
+
+List days missing from the data folder: not downloaded, not converted, or never published.
+
+| Argument or option | Description |
+|---|---|
+| `[date]` | a single date, e.g. 2024-04-01 |
+| `--start START` | first date of a range |
+| `--end END` | last date of a range (default: today) |
+| `--recent N` | the last N days, ending today |
+| `--timezone TIMEZONE` | timezone for 'today' (default: UTC, or the config's timezone) |
+| `-c, --config CONFIG` | TOML config file (see examples/config.example.toml) |
+| `-d, --dir DIR` | data folder (default: ./snodas_data, or the config's data.directory) |
+| `--unmasked` | use the unmasked (larger, North America) grids |
+| `--download` | download the days NSIDC has that are missing here |
+| `--workers WORKERS` | parallel downloads with --download (default: 4) |
+| `--offline` | don't ask NSIDC which missing days were published |
+| `--all` | list every range of missing days (default: the first 10) |
 
 ## snodas peaks
 
