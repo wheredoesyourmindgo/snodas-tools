@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-11-24)
 
 - `snodas chart --view` compares water years (Oct 1 to Sep 30): `water-years` draws the latest year (or `--years`, up
   to four) over the median and range of the other years and reports its percent of median, rank and peak so far;
