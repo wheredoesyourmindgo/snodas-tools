@@ -94,6 +94,19 @@ snodas stats    --start 2024-10-01 --end 2025-07-31 --basin upper_river=my_basin
 snodas chart snodas_output/swe_sum.csv
 ```
 
+**6. Check for missing days** (and fetch the ones NSIDC has):
+
+```console
+$ snodas gaps --start 2004-02-20 --end 2004-03-02
+2004-02-20 to 2004-03-02: 12 days
+      11 not downloaded (`snodas gaps --download` fetches them): 2004-02-20 to 2004-02-24 (5 days), 2004-02-26 to 2004-03-02 (6 days)
+       1 not published by NSIDC: 2004-02-25
+```
+
+With no dates, `snodas gaps` checks from the first day in the data folder through today. It asks NSIDC which days
+exist from its monthly directory listings (one request per month with missing days; `--offline` skips this). It looks
+at the data folder, so with `[cleanup] after_run = true` every cleaned-up day shows as missing.
+
 Date options work the same for every command: a single `DATE`, `--start` (and optionally `--end`, default today), or
 `--recent N` for the last N days. `--timezone America/Denver` controls what "today" means (default UTC).
 
@@ -191,6 +204,7 @@ Credentials come from the standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
 | `snodas download` | Download and unpack days from NSIDC (`--workers`, `--overwrite`, `--unmasked`) |
 | `snodas convert` | `.dat` to NetCDF/GeoTIFF (`--format`, `--products`, `--clip NAME=SHAPE`, `--delete-raw`) |
 | `snodas stats` | Basin statistics (`--basin NAME=SHAPE`, `--products`, `--units`, `--export csv parquet xlsx`) |
+| `snodas gaps` | Days missing from the data folder: not downloaded, not converted, or never published (`--download`) |
 | `snodas peaks` | Each water year's peak, peak date and melt-out date per basin (`--melt-out PERCENT`) |
 | `snodas run` | Everything above, from a config file |
 | `snodas dem` | Download a DEM for a basin from USGS 3DEP |

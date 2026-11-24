@@ -87,6 +87,18 @@ def _parser() -> argparse.ArgumentParser:
     )
 
     p = sub.add_parser(
+        "gaps",
+        help="list days missing from the data folder: not downloaded, not converted, or never published",
+        epilog=EPILOG,
+    )
+    _add_dates(p, required=False)
+    _add_data(p)
+    p.add_argument("--download", action="store_true", help="download the days NSIDC has that are missing here")
+    p.add_argument("--workers", type=int, help="parallel downloads with --download (default: 4)")
+    p.add_argument("--offline", action="store_true", help="don't ask NSIDC which missing days were published")
+    p.add_argument("--all", action="store_true", help="list every range of missing days (default: the first 10)")
+
+    p = sub.add_parser(
         "peaks", help="annual peak, peak date and melt-out date per basin, from the statistics tables", epilog=EPILOG
     )
     p.add_argument("-c", "--config", type=Path, help="TOML config file (for the output folder and settings)")
@@ -254,6 +266,44 @@ def cmd_stats(args) -> int:
     return 0
 
 
+def cmd_gaps(args) -> int:
+    from .dates import MASKED_START, UNMASKED_START, resolve_dates  # pylint: disable=import-outside-toplevel
+    from .download import download  # pylint: disable=import-outside-toplevel
+    from .gaps import find_gaps, first_local_day, format_ranges, format_report  # pylint: disable=import-outside-toplevel
+
+    if args.download and args.offline:
+        raise ValueError("--download needs to ask NSIDC what was published; drop --offline.")
+    cfg = _config(args)
+    if args.date is None and args.start is None and args.recent is None:
+        first = first_local_day(cfg.data_dir, cfg.masked)
+        if first is None:
+            raise ValueError(f"No data in {cfg.data_dir}. Choose dates with a DATE argument, --start, or --recent N.")
+        days = resolve_dates(start=first, timezone=cfg.timezone)
+    else:
+        days = _days(args, cfg)
+    earliest = MASKED_START if cfg.masked else UNMASKED_START
+    days = [d for d in days if d >= earliest]
+    report = find_gaps(cfg.data_dir, days, cfg.masked, check_nsidc=not args.offline)
+    print(format_report(report, limit=None if args.all else 10))
+    if args.download and report.not_downloaded:
+        results = download(
+            report.not_downloaded,
+            cfg.data_dir,
+            cfg.masked,
+            workers=args.workers or cfg.workers,
+            progress=not args.quiet,
+        )
+        fetched = [r.day for r in results if r.status == "downloaded"]
+        failed = [r.day for r in results if r.status not in ("downloaded", "exists")]
+        print(
+            f"Downloaded {len(fetched)} day(s)" + (f"; {len(failed)} failed: {format_ranges(failed)}" if failed else "")
+        )
+        if fetched:
+            print(f"Convert them with `snodas convert --start {fetched[0]} --end {fetched[-1]}`")
+        return 1 if failed else 0
+    return 0
+
+
 def cmd_peaks(args) -> int:
     from .peaks import format_peaks, save_peaks  # pylint: disable=import-outside-toplevel
     from .products import get_product  # pylint: disable=import-outside-toplevel
@@ -382,6 +432,7 @@ COMMANDS = {
     "download": cmd_download,
     "convert": cmd_convert,
     "stats": cmd_stats,
+    "gaps": cmd_gaps,
     "peaks": cmd_peaks,
     "run": cmd_run,
     "dem": cmd_dem,
