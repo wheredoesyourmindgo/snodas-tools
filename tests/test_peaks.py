@@ -158,3 +158,12 @@ def test_run_writes_peaks(tmp_path, square_basin):
     assert tmp_path / "out" / "swe_peaks.csv" in summary.tables
     peaks = pd.read_csv(tmp_path / "out" / "swe_peaks.csv")
     assert peaks.loc[0, "peak_date"] == "2025-04-01" and peaks.loc[0, "status"] == "in progress"
+
+
+def test_short_years_are_skipped():
+    sliver = pd.Series([0.0], index=[date(2003, 9, 30)])  # WY2003 in the real tables: one day
+    full = _season("2003-10-01", "2004-09-30", "2004-04-05", 1000.0)
+    latest = _season("2004-10-01", "2004-10-05", "2004-10-03", 5.0)  # short, but the season in progress
+    rows = basin_peaks({"sum": pd.concat([sliver, full, latest])}, last_day=date(2004, 10, 5))
+    assert [r["water_year"] for r in rows] == [2004, 2005]
+    assert rows[-1]["status"] == "in progress"

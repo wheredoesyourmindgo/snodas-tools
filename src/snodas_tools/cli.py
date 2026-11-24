@@ -406,6 +406,7 @@ def cmd_chart(args) -> int:
         table = wateryear.by_water_year(series)
         years = args.years or wateryear.default_years(table)
         wateryear.check_years(table, years)
+        table = wateryear.drop_short_years(table, keep=years)
         if args.png or args.show:
             wateryear.plot(table, args.view, years, title, units, args.png, args.show)
         elif args.view == "water-years":

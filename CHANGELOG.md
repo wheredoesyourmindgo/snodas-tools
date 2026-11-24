@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 (2026-11-24)
+
+- Water years with fewer than 30 days of data are left out of the `snodas chart` water-year views and the peaks table,
+  so a sliver of a year isn't counted as a season. The tables usually start on 2003-09-30, which made WY2003 a
+  one-day "year" in the chart's comparison range and gave it a zero-snow row in `swe_peaks.csv`. The latest water year
+  is always kept (it's still filling in), as is any year highlighted with `--years`.
+
 ## 0.2.0 (2026-11-24)
 
 - `snodas chart --view` compares water years (Oct 1 to Sep 30): `water-years` draws the latest year (or `--years`, up

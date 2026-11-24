@@ -120,3 +120,27 @@ def test_cli_chart_year_errors(table_file, capsys):
     assert "No data for water year" in capsys.readouterr().err
     assert cli.main(["chart", str(table_file), "--view", "heatmap", "--years", "2026"]) == 1
     assert "--years is for" in capsys.readouterr().err
+
+
+def test_short_years_are_left_out():
+    # like the real tables: a single day of WY2003 (2003-09-30) before full years
+    series = pd.concat(
+        [pd.Series([0.0], index=pd.to_datetime(["2003-09-30"])), _seasons(first_wy=2004, last_day="2005-10-05")]
+    )
+    table = wateryear.by_water_year(series)
+    assert list(table.columns) == [2003, 2004, 2005, 2006]
+    # WY2006 has only 5 days but is the latest, so it stays
+    assert list(wateryear.drop_short_years(table).columns) == [2004, 2005, 2006]
+    assert list(wateryear.drop_short_years(table, keep=[2003]).columns) == [2003, 2004, 2005, 2006]
+    text = wateryear.render_water_years(wateryear.drop_short_years(table), [2006], width=60, color=False)
+    assert "range (2 other years, WY2004-WY2005)" in text
+
+
+def test_cli_chart_skips_short_years(tmp_path, capsys):
+    series = pd.concat([pd.Series([0.0], index=pd.to_datetime(["2019-09-30"])), _seasons()])
+    path = tmp_path / "swe_sum.csv"
+    pd.DataFrame({"date": series.index.date, "upper": series.to_numpy()}).to_csv(path, index=False)
+    assert cli.main(["chart", str(path), "--view", "water-years", "--no-color"]) == 0
+    assert "range (6 other years, WY2020-WY2025)" in capsys.readouterr().out
+    assert cli.main(["chart", str(path), "--view", "heatmap", "--no-color"]) == 0
+    assert "WY2019" not in capsys.readouterr().out

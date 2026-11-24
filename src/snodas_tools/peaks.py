@@ -12,6 +12,8 @@ Columns:
 - `status`: `final`; `in progress` (the latest water year, until it ends on Sep 30: a later storm can still beat the
   peak so far); or `incomplete` (the data starts on the peak day, so the real peak may be earlier, or it stops before
   the snow melted out)
+
+Water years with fewer than 30 days of data, other than the latest, are left out.
 """
 
 import json
@@ -24,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from . import store
-from .wateryear import water_year
+from .wateryear import MIN_DAYS, water_year
 
 log = logging.getLogger(__name__)
 
@@ -55,10 +57,11 @@ def basin_peaks(
         return []
     key = frame[names[0]]
     rows = []
+    latest = water_year(last_day)
     for wy, season in key.groupby([water_year(d) for d in key.index]):
         season = season.dropna().sort_index()
-        if season.empty:
-            continue
+        if season.empty or (season.size < MIN_DAYS and wy != latest):
+            continue  # a sliver of a year (e.g. WY2003, only Sep 30, 2003) has no meaningful peak
         peak_day, peak = season.idxmax(), float(season.max())
         row = {"water_year": int(wy), "peak_date": peak_day if peak > 0 else None}
         for name in names:

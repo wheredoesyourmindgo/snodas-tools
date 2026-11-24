@@ -17,6 +17,7 @@ import pandas as pd
 from .preview import _ASCII_RAMP, _ansi, _color_mode, _rgb, pyplot
 
 DAYS = 366
+MIN_DAYS = 30  # water years with less data than this are left out (except the latest)
 _REF_START = date(1999, 10, 1)  # WY2000, a water year with a Feb 29
 _MONTH_NUMBERS = (10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 MONTHS = [calendar.month_abbr[m] for m in _MONTH_NUMBERS]
@@ -89,6 +90,18 @@ def monthly_means(table: pd.DataFrame) -> pd.DataFrame:
     """Each water year's average for each month (rows Oct-Sep, columns water years). Partial months use the days present."""
     rows = [table.iloc[a:b].mean(axis=0) for a, b in pairwise(_MONTH_EDGES)]
     return pd.DataFrame(rows, index=MONTHS)
+
+
+def drop_short_years(table: pd.DataFrame, keep=()) -> pd.DataFrame:
+    """
+    Leave out water years with fewer than MIN_DAYS days of data (e.g. WY2003, which is only Sep 30, 2003), so a sliver
+    of a year isn't counted as one of the years compared. The latest year (still filling in) and `keep` stay.
+    """
+    if table.columns.empty:
+        return table
+    counts = table.notna().sum(axis=0)
+    keep = {*keep, table.columns.max()}
+    return table[[wy for wy in table.columns if wy in keep or counts[wy] >= MIN_DAYS]]
 
 
 def default_years(table: pd.DataFrame) -> list[int]:
